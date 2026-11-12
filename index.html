@@ -1,0 +1,2179 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#050a12">
+<title>Первородная клетка</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+html,body{width:100%;height:100%;overflow:hidden;background:#050a12;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#d8f0ff;position:fixed;overscroll-behavior:none;touch-action:none}
+#app{width:100%;height:100%;display:flex;flex-direction:column;overflow:hidden}
+#playScreen{position:relative;flex:1 1 auto;min-height:0;overflow:hidden;background:#050a12;border-bottom:2px solid rgba(90,255,154,.25);box-shadow:0 4px 30px rgba(90,255,154,.08) inset}
+#cv{display:block;width:100%;height:100%;touch-action:none}
+#hud{position:absolute;top:0;left:0;right:0;padding:calc(5px + env(safe-area-inset-top)) 7px 5px;pointer-events:none;z-index:10;display:flex;flex-direction:column;gap:3px}
+.bar-row{display:flex;align-items:center;gap:4px;font-size:8px;letter-spacing:.3px}
+.bar-label{width:38px;text-align:right;opacity:.7;font-weight:600;flex-shrink:0}
+.bar-bg{flex:1;height:7px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden;border:1px solid rgba(255,255,255,.1);min-width:0}
+.bar-fill{height:100%;width:50%;border-radius:3px;transition:width .25s ease}
+#bEnergy .bar-fill{background:linear-gradient(90deg,#ffd34d,#ff9a3d)}
+#bMatter .bar-fill{background:linear-gradient(90deg,#4dffb8,#3da9ff)}
+#bInfo .bar-fill{background:linear-gradient(90deg,#c06dff,#ff6dd8)}
+#bStab .bar-fill{background:linear-gradient(90deg,#5aff9a,#2fd6ff)}
+#topInfo{position:absolute;top:calc(5px + env(safe-area-inset-top));right:7px;font-size:8px;text-align:right;opacity:.6;line-height:1.35;pointer-events:none;z-index:11}
+#eventBanner{position:absolute;top:calc(58px + env(safe-area-inset-top));left:50%;transform:translateX(-50%) translateY(-16px);background:rgba(255,90,90,.2);border:1px solid rgba(255,90,90,.55);border-radius:10px;padding:6px 12px;font-size:clamp(9px,2.8vw,11px);font-weight:700;color:#ff9a9a;z-index:35;opacity:0;transition:.4s cubic-bezier(.34,1.56,.64,1);pointer-events:none;white-space:nowrap;max-width:94%}
+#eventBanner.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#stageProgress{position:absolute;left:6px;right:6px;bottom:4px;height:4px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden;z-index:18;display:none}
+#stageProgress.active{display:block}
+#stageProgressFill{height:100%;width:0%;background:linear-gradient(90deg,#5aff9a,#3da9ff);border-radius:3px;transition:width .2s;box-shadow:0 0 10px rgba(90,255,154,.6)}
+#statusHint{position:absolute;left:6px;right:6px;bottom:12px;font-size:9px;text-align:center;color:#9fe8ff;opacity:.6;z-index:17;pointer-events:none;transition:opacity .3s}
+#sliders{position:absolute;left:6px;right:6px;bottom:20px;display:none;flex-direction:column;gap:3px;z-index:24;pointer-events:auto}
+#sliders.active{display:flex}
+.slider-row{display:flex;align-items:center;gap:6px;background:rgba(5,10,18,.82);padding:4px 8px;border-radius:8px;border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(4px)}
+.slider-row span{font-size:8px;width:34px;opacity:.85;flex-shrink:0;font-weight:700}
+.slider-row input{flex:1;-webkit-appearance:none;height:5px;border-radius:3px;background:rgba(255,255,255,.15);outline:none;min-width:0}
+.slider-row input::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#5aff9a,#3da9ff);box-shadow:0 2px 6px rgba(0,0,0,.5),0 0 10px rgba(90,255,154,.5)}
+.slider-row input::-moz-range-thumb{width:18px;height:18px;border:none;border-radius:50%;background:linear-gradient(135deg,#5aff9a,#3da9ff)}
+#toast{position:absolute;top:45%;left:50%;transform:translate(-50%,-50%) scale(.85);background:rgba(5,10,18,.94);border:1px solid rgba(90,255,154,.45);border-radius:12px;padding:10px 16px;font-size:clamp(10px,3vw,12px);font-weight:600;color:#9fe8ff;z-index:100;opacity:0;pointer-events:none;transition:.3s cubic-bezier(.34,1.56,.64,1);text-align:center;max-width:80%;backdrop-filter:blur(6px)}
+#toast.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+#controlScreen{flex:0 0 auto;height:clamp(130px,26vh,190px);background:linear-gradient(180deg,#0a1626,#050a12);border-top:1.5px solid rgba(90,255,154,.28);box-shadow:0 -6px 30px rgba(90,255,154,.1);display:flex;align-items:center;justify-content:space-between;padding:6px calc(8px + env(safe-area-inset-left)) calc(6px + env(safe-area-inset-bottom)) calc(8px + env(safe-area-inset-right));position:relative;z-index:30;gap:6px}
+#controlScreen::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(90,255,154,.6),rgba(61,169,255,.6),transparent);animation:lineGlow 3s ease-in-out infinite}
+@keyframes lineGlow{0%,100%{opacity:.4}50%{opacity:1}}
+#pauseBtn{width:clamp(52px,14vw,66px);height:clamp(52px,14vw,66px);border-radius:50%;background:linear-gradient(135deg,rgba(255,211,77,.25),rgba(255,154,61,.2));border:1.5px solid rgba(255,211,77,.45);color:#ffd34d;font-size:clamp(18px,5vw,24px);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:transform .12s cubic-bezier(.34,1.56,.64,1);box-shadow:0 0 18px rgba(255,211,77,.15)}
+#pauseBtn:active{transform:scale(.88)}
+#controlCenter{flex:1 1 auto;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;min-width:0;max-width:60%;overflow:hidden}
+.act-btn{width:clamp(56px,15vw,72px);height:clamp(56px,15vw,72px);border-radius:50%;font-size:clamp(9px,2.8vw,11px);font-weight:800;color:#04121f;background:linear-gradient(135deg,#5aff9a,#3da9ff);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;text-align:center;padding:4px;line-height:1.15;box-shadow:0 3px 14px rgba(61,169,255,.45);transition:transform .12s cubic-bezier(.34,1.56,.64,1),opacity .25s;position:relative;overflow:hidden;flex-shrink:0;letter-spacing:.2px}
+.act-btn:active{transform:scale(.9)}
+.act-btn.alt{background:rgba(255,255,255,.12);color:#cfe9ff;border:1.5px solid rgba(255,255,255,.28);box-shadow:0 3px 12px rgba(0,0,0,.3)}
+.act-btn.cooling{opacity:.35;pointer-events:none}
+#joystick{position:relative;width:clamp(100px,30vw,140px);height:clamp(100px,30vw,140px);border-radius:50%;background:radial-gradient(circle at 50% 50%,rgba(90,255,154,.14),rgba(90,255,154,.03) 60%,transparent);border:1.5px solid rgba(90,255,154,.35);box-shadow:0 0 20px rgba(90,255,154,.15),inset 0 0 20px rgba(90,255,154,.08);flex-shrink:0;touch-action:none;transition:border-color .2s,box-shadow .2s}
+#joystick.active-touch{border-color:rgba(90,255,154,.8);box-shadow:0 0 30px rgba(90,255,154,.4),inset 0 0 25px rgba(90,255,154,.15)}
+#joyRing{position:absolute;inset:8px;border-radius:50%;border:1px dashed rgba(90,255,154,.2);animation:ringSpin 12s linear infinite}
+@keyframes ringSpin{to{transform:rotate(360deg)}}
+#joyBaseDot{position:absolute;left:50%;top:50%;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;background:rgba(255,255,255,.35)}
+#joyKnob{position:absolute;left:50%;top:50%;width:42%;height:42%;margin:-21% 0 0 -21%;border-radius:50%;background:radial-gradient(circle at 35% 30%,#b8fff0,#3da9ff 70%);box-shadow:0 0 18px rgba(61,169,255,.7),0 0 8px rgba(90,255,154,.5);transition:transform .05s cubic-bezier(.25,.8,.35,1);will-change:transform}
+#joyKnob::after{content:'';position:absolute;left:32.5%;top:32.5%;width:35%;height:35%;border-radius:50%;background:radial-gradient(circle at 40% 35%,rgba(255,255,255,.9),rgba(255,255,255,.2))}
+.screen{position:absolute;inset:0;background:radial-gradient(circle at 50% 30%,#0d1a2e,#050a12 80%);display:none;flex-direction:column;align-items:center;justify-content:flex-start;padding:calc(16px + env(safe-area-inset-top)) 14px calc(16px + env(safe-area-inset-bottom));z-index:100;text-align:center;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.screen.active{display:flex;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
+.screen h1{font-size:clamp(20px,7vw,30px);font-weight:800;letter-spacing:1px;margin-bottom:6px;margin-top:auto;background:linear-gradient(90deg,#5aff9a,#3da9ff,#c06dff);-webkit-background-clip:text;background-clip:text;color:transparent;animation:titleGlow 3s ease-in-out infinite}
+@keyframes titleGlow{0%,100%{filter:drop-shadow(0 0 8px rgba(90,255,154,.3))}50%{filter:drop-shadow(0 0 16px rgba(61,169,255,.5))}}
+.screen h2{font-size:clamp(15px,5vw,20px);margin-bottom:8px;color:#9fe8ff;margin-top:auto}
+.screen p{font-size:clamp(11px,3.4vw,14px);line-height:1.5;opacity:.85;max-width:400px;margin-bottom:10px}
+.screen .sub{font-size:clamp(9px,2.8vw,12px);opacity:.5;margin-bottom:14px;letter-spacing:.5px}
+.screen > *:last-child{margin-bottom:auto}
+.btn{width:100%;max-width:340px;padding:13px;margin:5px 0;border:none;border-radius:14px;font-size:clamp(13px,3.8vw,16px);font-weight:700;letter-spacing:.5px;color:#04121f;background:linear-gradient(135deg,#5aff9a,#3da9ff);box-shadow:0 4px 18px rgba(61,169,255,.35);transition:transform .12s cubic-bezier(.34,1.56,.64,1);cursor:pointer;-webkit-appearance:none;animation:btnIn .4s ease}
+@keyframes btnIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.btn:active{transform:scale(.95)}
+.btn.secondary{background:rgba(255,255,255,.08);color:#cfe9ff;border:1px solid rgba(255,255,255,.18);box-shadow:none}
+.btn:disabled{opacity:.4;pointer-events:none}
+.mut-list{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;max-width:480px}
+.mut-card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:9px 10px;text-align:left;cursor:pointer;transition:.15s;position:relative;overflow:hidden;animation:cardIn .3s ease backwards;min-height:64px}
+@keyframes cardIn{from{opacity:0;transform:translateY(8px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
+.mut-card:active{transform:scale(.96);background:rgba(90,255,154,.14);border-color:#5aff9a;box-shadow:0 0 16px rgba(90,255,154,.2)}
+.mut-card .mc-title{font-size:clamp(10px,3vw,12px);font-weight:700;color:#9fe8ff;margin-bottom:2px;line-height:1.2;padding-right:14px}
+.mut-card .mc-desc{font-size:clamp(8.5px,2.6vw,10px);opacity:.7;line-height:1.25}
+.mut-card .mc-icon{position:absolute;right:5px;top:5px;font-size:13px;opacity:.6}
+#deathScreen{background:radial-gradient(circle at 50% 40%,#2a0a0a,#050a12 75%)}
+#winScreen{background:radial-gradient(circle at 50% 40%,#0a2a1e,#050a12 75%)}
+#winName{font-size:clamp(12px,3.6vw,16px);font-style:italic;color:#5aff9a;margin:4px 0 8px;letter-spacing:1px}
+.stat-line{font-size:clamp(10px,3vw,12px);opacity:.7;margin:2px 0}
+#pauseScreen{background:rgba(5,10,18,.96)}
+#evolutionTree{width:100%;max-width:400px;height:clamp(110px,26vh,180px);max-height:26vh;margin:6px 0;position:relative;flex-shrink:0}
+#bodyEditor{position:absolute;inset:0;display:none;flex-direction:column;z-index:90;background:rgba(5,10,18,.98);padding:calc(10px + env(safe-area-inset-top)) 10px calc(10px + env(safe-area-inset-bottom))}
+#bodyEditor.active{display:flex;animation:fadeIn .25s ease}
+#bodyEditor .be-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-shrink:0}
+#bodyEditor .be-title{font-size:13px;font-weight:700;color:#9fe8ff}
+#gridWrap{flex:1;display:flex;align-items:center;justify-content:center;min-height:0}
+#bodyGrid{display:grid;gap:3px;touch-action:none}
+.cell{width:clamp(30px,9.5vw,42px);height:clamp(30px,9.5vw,42px);border-radius:7px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:14px;transition:.12s}
+.cell.filled{border-color:rgba(255,255,255,.35)}
+.cell.epi{background:rgba(90,255,154,.35);box-shadow:inset 0 0 10px rgba(90,255,154,.4)}
+.cell.dig{background:rgba(255,90,90,.35);box-shadow:inset 0 0 10px rgba(255,90,90,.4)}
+.cell.mus{background:rgba(61,169,255,.35);box-shadow:inset 0 0 10px rgba(61,169,255,.4)}
+.cell.ner{background:rgba(255,211,77,.35);box-shadow:inset 0 0 10px rgba(255,211,77,.4)}
+.cell.stem{background:rgba(192,109,255,.35);box-shadow:inset 0 0 10px rgba(192,109,255,.4)}
+#palette{display:flex;gap:5px;justify-content:center;flex-wrap:wrap;padding:7px 0;flex-shrink:0}
+.pal-item{padding:7px 9px;border-radius:9px;font-size:10px;font-weight:700;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.07);color:#cfe9ff;cursor:pointer;transition:.15s}
+.pal-item.sel{background:linear-gradient(135deg,#5aff9a,#3da9ff);color:#04121f;border-color:transparent;box-shadow:0 0 12px rgba(90,255,154,.4)}
+#beInfo{font-size:10px;opacity:.7;text-align:center;margin:2px 0;flex-shrink:0;line-height:1.35;min-height:28px}
+#beBtns{display:flex;gap:8px;margin-top:5px;flex-shrink:0}
+#beBtns .btn{padding:11px;font-size:13px;margin:0}
+#bgParticles{position:absolute;inset:0;pointer-events:none;z-index:1;overflow:hidden}
+.bgp{position:absolute;border-radius:50%;background:radial-gradient(circle,rgba(90,255,154,.5),transparent 70%);animation:bgFloat linear infinite}
+@keyframes bgFloat{0%{transform:translateY(0) translateX(0);opacity:0}10%{opacity:.5}90%{opacity:.5}100%{transform:translateY(-120vh) translateX(20px);opacity:0}}
+#branchScreen .branch-list{display:flex;flex-direction:column;gap:10px;width:100%;max-width:380px;margin:8px 0}
+.branch-card{background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.15);border-radius:16px;padding:14px 16px;text-align:left;cursor:pointer;transition:.2s;position:relative;overflow:hidden}
+.branch-card:active{transform:scale(.97)}
+.branch-card.earth{border-color:rgba(90,255,154,.5);background:linear-gradient(135deg,rgba(90,255,154,.1),rgba(61,169,255,.05))}
+.branch-card.human{border-color:rgba(255,211,77,.5);background:linear-gradient(135deg,rgba(255,211,77,.1),rgba(255,154,61,.05))}
+.branch-card.space{border-color:rgba(192,109,255,.5);background:linear-gradient(135deg,rgba(192,109,255,.1),rgba(61,169,255,.05))}
+.branch-card .bc-icon{font-size:28px;margin-bottom:4px}
+.branch-card .bc-title{font-size:clamp(13px,4vw,16px);font-weight:800;margin-bottom:3px}
+.branch-card.earth .bc-title{color:#5aff9a}
+.branch-card.human .bc-title{color:#ffd34d}
+.branch-card.space .bc-title{color:#c06dff}
+.branch-card .bc-desc{font-size:clamp(10px,3vw,12px);opacity:.75;line-height:1.35}
+#finalScreen{background:radial-gradient(circle at 50% 30%,#0a1e2e,#050a12 75%)}
+#finalScreen .final-wrap{width:100%;max-width:420px;display:flex;flex-direction:column;align-items:center;margin:auto 0}
+#finalCanvasWrap{width:100%;height:clamp(160px,32vh,240px);position:relative;margin:6px 0;border-radius:16px;background:radial-gradient(circle at 50% 50%,rgba(90,255,154,.08),transparent 70%);overflow:hidden}
+#finalCanvas{width:100%;height:100%;display:block}
+#finalReal{font-size:clamp(16px,4.8vw,22px);font-weight:800;color:#5aff9a;margin:4px 0 2px;line-height:1.2}
+#finalLatin{font-size:clamp(11px,3.2vw,13px);font-style:italic;color:#9fe8ff;opacity:.8;margin-bottom:8px}
+#finalEpoch{font-size:clamp(9px,2.8vw,11px);color:#ffd34d;opacity:.9;margin-bottom:10px;letter-spacing:.5px}
+.final-block{width:100%;text-align:left;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:9px 12px;margin:5px 0}
+.final-block h3{font-size:clamp(10px,3vw,12px);font-weight:800;color:#9fe8ff;margin-bottom:4px;letter-spacing:.5px;text-transform:uppercase;opacity:.9}
+.final-block p{font-size:clamp(10.5px,3.1vw,12.5px);line-height:1.45;opacity:.85;margin:0}
+.final-block ul{list-style:none;padding:0;margin:0}
+.final-block li{font-size:clamp(10.5px,3.1vw,12.5px);line-height:1.5;opacity:.85;padding-left:14px;position:relative}
+.final-block li::before{content:'▸';position:absolute;left:0;color:#5aff9a}
+.final-block.weak li::before{color:#ff9a9a}
+#finalStats{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:6px 0}
+.final-stat{font-size:clamp(9px,2.7vw,11px);padding:4px 9px;border-radius:8px;background:rgba(90,255,154,.1);border:1px solid rgba(90,255,154,.25);color:#9fe8ff}
+@media(max-height:560px){#controlScreen{height:clamp(110px,24vh,150px)}.bar-row{font-size:7px}.bar-bg{height:5px}.mut-list{gap:6px}.mut-card{padding:7px 8px;min-height:56px}.screen h1{font-size:18px}}
+@media(min-width:500px){.mut-list{grid-template-columns:1fr 1fr 1fr}}
+@media(max-width:340px){#controlCenter{max-width:50%;gap:5px}.act-btn{width:48px;height:48px;font-size:8px}#pauseBtn{width:46px;height:46px}#joystick{width:88px;height:88px}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="playScreen">
+    <canvas id="cv"></canvas>
+    <div id="bgParticles"></div>
+    <div id="hud">
+      <div class="bar-row" id="bEnergy"><div class="bar-label">ЭНЕРГИЯ</div><div class="bar-bg"><div class="bar-fill"></div></div></div>
+      <div class="bar-row" id="bMatter"><div class="bar-label">МАТЕРИЯ</div><div class="bar-bg"><div class="bar-fill"></div></div></div>
+      <div class="bar-row" id="bInfo"><div class="bar-label">ДНК</div><div class="bar-bg"><div class="bar-fill"></div></div></div>
+      <div class="bar-row" id="bStab"><div class="bar-label">СТАБ.</div><div class="bar-bg"><div class="bar-fill"></div></div></div>
+    </div>
+    <div id="topInfo"></div>
+    <div id="eventBanner"></div>
+    <div id="statusHint"></div>
+    <div id="stageProgress"><div id="stageProgressFill"></div></div>
+    <div id="sliders"></div>
+    <div id="toast"></div>
+    <div id="bodyEditor">
+      <div class="be-head"><div class="be-title">🧬 Сборка тела</div><div style="font-size:10px;opacity:.6" id="beCount"></div></div>
+      <div id="gridWrap"><div id="bodyGrid"></div></div>
+      <div id="beInfo"></div>
+      <div id="palette"></div>
+      <div id="beBtns"><button class="btn secondary" id="beClear">Очистить</button><button class="btn" id="beDone">Готово ✓</button></div>
+    </div>
+  </div>
+  <div id="controlScreen">
+    <div id="pauseBtn">⏸</div>
+    <div id="controlCenter"></div>
+    <div id="joystick"><div id="joyRing"></div><div id="joyBaseDot"></div><div id="joyKnob"></div></div>
+  </div>
+
+  <div class="screen active" id="startScreen">
+    <h1>ПЕРВОРОДНАЯ КЛЕТКА</h1>
+    <div class="sub">СИМУЛЯТОР ЭВОЛЮЦИИ</div>
+    <p>Ты — одна молекула в первичном бульоне. Пройди путь от РНК до животного, человека или инопланетного существа. Каждый выбор меняет финал.</p>
+    <button class="btn" id="btnStart">НАЧАТЬ ЖИЗНЬ</button>
+    <button class="btn secondary" id="btnHelp">КАК ИГРАТЬ</button>
+  </div>
+
+  <div class="screen" id="helpScreen">
+    <h2>Как играть</h2>
+    <p style="text-align:left;font-size:12px">
+    <b>Управление:</b> джойстик справа, пауза слева.<br><br>
+    <b>5 стадий:</b> РНК → LUCA → цианобактерия → колония → пикайя.<br><br>
+    <b>Причинно-следственная логика:</b><br>
+    • Среда определяет, какие ресурсы появляются.<br>
+    • Питание определяет, откуда энергия.<br>
+    • ДНК копится только при сытости.<br>
+    • Опасности имеют контр-механику.<br>
+    • Фотосинтез работает только на свету.<br><br>
+    <b>Финальная ветка:</b> Земля, Человек или Космос.<br><br>
+    <b>Совет:</b> враги медленнее тебя — двигайся!
+    </p>
+    <button class="btn" id="btnHelpBack">НАЗАД</button>
+  </div>
+
+  <div class="screen" id="mutationScreen">
+    <h2 id="mutTitle">РАЗВИЛКА</h2>
+    <div class="sub" id="mutSub">Выбери адаптацию</div>
+    <div class="mut-list" id="mutList"></div>
+  </div>
+
+  <div class="screen" id="stageIntro">
+    <h2 id="siTitle">СТАДИЯ</h2>
+    <p id="siText"></p>
+    <button class="btn" id="siBtn">ПРОДОЛЖИТЬ</button>
+  </div>
+
+  <div class="screen" id="deathScreen">
+    <h1 style="background:linear-gradient(90deg,#ff5a5a,#ff9a3d);-webkit-background-clip:text;background-clip:text;color:transparent">ВЫМИРАНИЕ</h1>
+    <p id="deathText">Твой организм не справился со средой.</p>
+    <div id="deathStats" style="margin:8px 0 14px"></div>
+    <button class="btn" id="btnRetry">ПОПРОБОВАТЬ СНОВА</button>
+    <button class="btn secondary" id="btnMenu">В МЕНЮ</button>
+  </div>
+
+  <div class="screen" id="winScreen">
+    <h1 style="background:linear-gradient(90deg,#5aff9a,#3da9ff,#c06dff);-webkit-background-clip:text;background-clip:text;color:transparent">ЭВОЛЮЦИЯ ЗАВЕРШЕНА</h1>
+    <p>Ты прошёл путь от молекулы до животного.</p>
+    <div id="winName">Primoflagellata symbiotica</div>
+    <div id="evolutionTree"></div>
+    <div id="winStats" style="margin:4px 0 14px"></div>
+    <button class="btn" id="btnBranch">ВЫБРАТЬ ФИНАЛЬНЫЙ ПУТЬ</button>
+  </div>
+
+  <div class="screen" id="branchScreen">
+    <h2>ФИНАЛЬНЫЙ ПУТЬ</h2>
+    <div class="sub">Куда поведёт эволюция?</div>
+    <div class="branch-list">
+      <div class="branch-card earth" id="branchEarth">
+        <div class="bc-icon">🌍</div>
+        <div class="bc-title">Земной путь</div>
+        <div class="bc-desc">Останься на планете. Пройди через великие эры и стань существом всех времён.</div>
+      </div>
+      <div class="branch-card human" id="branchHuman">
+        <div class="bc-icon">🧠</div>
+        <div class="bc-title">Путь разума</div>
+        <div class="bc-desc">Развей мозг и социальность. Научись использовать огонь и орудия. Стань человеком.</div>
+      </div>
+      <div class="branch-card space" id="branchSpace">
+        <div class="bc-icon">🌌</div>
+        <div class="bc-title">Космический путь</div>
+        <div class="bc-desc">Покинь колыбель. Адаптируйся к вакууму и радиации. Стань инопланетным существом.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen" id="finalScreen">
+    <div class="final-wrap">
+      <div id="finalCanvasWrap"><canvas id="finalCanvas"></canvas></div>
+      <div id="finalReal">Название</div>
+      <div id="finalLatin">*Latin name*</div>
+      <div id="finalEpoch">Эпоха</div>
+      <div id="finalStats"></div>
+      <div class="final-block"><h3>Кто он</h3><p id="finalWho"></p></div>
+      <div class="final-block"><h3>Что умеет</h3><ul id="finalAbilities"></ul></div>
+      <div class="final-block weak"><h3>Слабые места</h3><ul id="finalWeak"></ul></div>
+      <button class="btn" id="btnFinalRestart" style="margin-top:12px">НОВАЯ ЖИЗНЬ</button>
+    </div>
+  </div>
+
+  <div class="screen" id="pauseScreen">
+    <h2>ПАУЗА</h2>
+    <button class="btn" id="btnResume">ПРОДОЛЖИТЬ</button>
+    <button class="btn secondary" id="btnQuit">В МЕНЮ</button>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const playScreen = document.getElementById('playScreen');
+let W = 0, H = 0, DPR = 1;
+
+function resize(){
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  const r = playScreen.getBoundingClientRect();
+  W = r.width; H = r.height;
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+  cv.style.width = W + 'px'; cv.style.height = H + 'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+window.addEventListener('resize', resize);
+window.addEventListener('orientationchange', ()=>setTimeout(resize,150));
+
+(function createBgParticles(){
+  const box = document.getElementById('bgParticles');
+  for(let i=0;i<14;i++){
+    const d = document.createElement('div');
+    d.className='bgp';
+    const s = 2 + Math.random()*6;
+    d.style.width = s+'px'; d.style.height = s+'px';
+    d.style.left = Math.random()*100+'%';
+    d.style.bottom = '-10px';
+    d.style.animationDuration = (8+Math.random()*10)+'s';
+    d.style.animationDelay = (Math.random()*10)+'s';
+    box.appendChild(d);
+  }
+})();
+
+const S = {
+  stage: 0, running: false, paused: false,
+  energy: 100, matter: 0, info: 0, stab: 100,
+  maxEnergy: 100, maxStab: 100,
+  traits: {}, decisions: [], elapsed: 0, deaths: 0, st: null,
+  branch: null,
+  inLight: true, // на свету ли игрок (для фотосинтеза)
+  o2: 0, // уровень кислорода
+};
+function resetTraits(){
+  S.traits = {
+    nutrition: null, body: null, skeleton: 'none', limbs: 'none',
+    eyes: 'none', env: null, size: 'medium', social: 'solitary',
+    speed: 1, armor: 0, dodge: 0, regen: 0, senses: 0,
+    flagellum:false, thickMembrane:false, chemotaxis:false,
+    mitochondria:false, oxygenProof:false, cilia:false,
+    adhesion:false, nerveImpulse:false, vacuole:false,
+    symmetry:false, segmentation:false, skeletonFlag:false,
+    photosynthesis:false, predation:false, symbiosis:false,
+    gigantism:false, miniaturization:false, migration:false,
+    aerobicGiant:false, deepSea:false, landPioneer:false,
+  };
+}
+resetTraits();
+
+const $ = id => document.getElementById(id);
+const screens = ['startScreen','helpScreen','mutationScreen','stageIntro','deathScreen','winScreen','branchScreen','finalScreen','pauseScreen'];
+function showScreen(id){ screens.forEach(s => $(s).classList.toggle('active', s === id)); }
+function hideAllScreens(){ screens.forEach(s => $(s).classList.remove('active')); }
+
+function updateHUD(){
+  const set = (id, val, max) => {
+    const el = document.querySelector('#'+id+' .bar-fill');
+    if(el) el.style.width = Math.max(0, Math.min(100, val/max*100)) + '%';
+  };
+  set('bEnergy', S.energy, S.maxEnergy);
+  set('bMatter', S.matter, Math.max(20, S.matter+1));
+  set('bInfo', S.info, Math.max(20, S.info+1));
+  set('bStab', S.stab, S.maxStab);
+  const names = ['','РНК-мир','LUCA','Цианобактерия','Колония','Пикайя','Финал'];
+  $('topInfo').innerHTML = `<div style="font-weight:700;color:#9fe8ff">${names[S.stage]||''}</div><div>${Math.floor(S.elapsed)} с</div>`;
+}
+function setStageProgress(p){
+  const el = $('stageProgress');
+  if(p === null){ el.classList.remove('active'); return; }
+  el.classList.add('active');
+  $('stageProgressFill').style.width = Math.max(0, Math.min(1, p))*100 + '%';
+}
+function setStatusHint(text){
+  const el = $('statusHint');
+  el.textContent = text || '';
+  el.style.opacity = text ? '0.6' : '0';
+}
+function toast(msg, dur=1400){
+  const b = $('eventBanner'); b.classList.remove('show');
+  const t = $('toast'); t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._t);
+  t._t = setTimeout(()=>t.classList.remove('show'), dur);
+}
+function banner(msg){
+  const t = $('toast'); t.classList.remove('show');
+  const b = $('eventBanner'); b.textContent = msg;
+  b.classList.add('show');
+  clearTimeout(b._t);
+  b._t = setTimeout(()=>b.classList.remove('show'), 2600);
+}
+
+// ============ ДЖОЙСТИК ============
+const control = { joy: { active:false, id:null, dx:0, dy:0, mag:0 } };
+function setupJoystick(){
+  const joystick = $('joystick'), knob = $('joyKnob');
+  function updateJoy(px, py){
+    const r = joystick.getBoundingClientRect();
+    const maxR = r.width/2 - 6;
+    let dx = px - (r.left + r.width/2);
+    let dy = py - (r.top + r.height/2);
+    const d = Math.hypot(dx,dy);
+    if(d > maxR){ dx = dx/d*maxR; dy = dy/d*maxR; }
+    control.joy.dx = dx/maxR; control.joy.dy = dy/maxR;
+    control.joy.mag = Math.min(1, d/maxR);
+    knob.style.transform = `translate(${dx}px,${dy}px)`;
+  }
+  joystick.addEventListener('pointerdown', e => {
+    e.preventDefault(); e.stopPropagation();
+    joystick.setPointerCapture(e.pointerId);
+    control.joy.active = true; control.joy.id = e.pointerId;
+    joystick.classList.add('active-touch');
+    updateJoy(e.clientX, e.clientY);
+  });
+  joystick.addEventListener('pointermove', e => {
+    if(!control.joy.active || e.pointerId !== control.joy.id) return;
+    e.preventDefault(); updateJoy(e.clientX, e.clientY);
+  });
+  const endJoy = e => {
+    if(e.pointerId !== control.joy.id) return;
+    control.joy.active = false; control.joy.id = null;
+    control.joy.dx = 0; control.joy.dy = 0; control.joy.mag = 0;
+    knob.style.transform = 'translate(0,0)';
+    joystick.classList.remove('active-touch');
+  };
+  joystick.addEventListener('pointerup', endJoy);
+  joystick.addEventListener('pointercancel', endJoy);
+}
+function getMoveVector(){
+  if(control.joy.active && control.joy.mag > 0.06){
+    return { x: control.joy.dx, y: control.joy.dy, mag: control.joy.mag };
+  }
+  return null;
+}
+function moveEntity(obj, dt, speed, bounds){
+  const mv = getMoveVector();
+  if(!mv) return;
+  obj.x += mv.x * speed * dt;
+  obj.y += mv.y * speed * dt;
+  if(bounds){
+    obj.x = Math.max(bounds.minX, Math.min(bounds.maxX, obj.x));
+    obj.y = Math.max(bounds.minY, Math.min(bounds.maxY, obj.y));
+  }
+}
+
+// ============ КНОПКИ ДЕЙСТВИЙ ============
+let actionButtonsCache = [];
+function setupActionButtons(defs){
+  const center = $('controlCenter');
+  center.innerHTML = '';
+  actionButtonsCache = defs || [];
+  if(!defs || defs.length === 0) return;
+  defs.forEach((d,i) => {
+    const b = document.createElement('button');
+    b.className = 'act-btn' + (d.alt?' alt':'');
+    b.innerHTML = d.label;
+    b.onclick = (e)=>{ e.preventDefault(); e.stopPropagation(); if(d.onClick) d.onClick(b); };
+    d.el = b;
+    center.appendChild(b);
+  });
+}
+function clearActionButtons(){ $('controlCenter').innerHTML = ''; actionButtonsCache = []; }
+
+// ============ СПРАВОЧНИК РЕАЛЬНЫХ ЖИВОТНЫХ ============
+const REAL_CREATURES = [
+  {match:{body:'arthropod',skeleton:'chitin',env:'bottom',nutrition:['heterotroph','predator','phagotroph','parasite']},
+   name:'Трилобит', latin:'Trilobita', epoch:'Палеозой, 521–250 млн лет назад',
+   who:'Донный членистоногий хищник и падальщик. Ползал по дну древних морей, оставляя характерные следы.',
+   abilities:['Твёрдый хитиновый панцирь','Фасеточные глаза','Зарывание в грунт','Сворачивание в шар'],
+   weak:['Медлителен на открытой воде','Уязвим для крупных хищников']},
+  {match:{body:'arthropod',skeleton:'chitin',env:'ocean',size:'giant'},
+   name:'Аномалокарис', latin:'Anomalocaris', epoch:'Кембрий, 520–497 млн лет назад',
+   who:'Гигантский хищник кембрийских морей. Хватал добычу передними придатками и разгрызал ротовым конусом.',
+   abilities:['Хватательные придатки','Фасеточные глаза','Быстрое плавание','Мощные челюсти'],
+   weak:['Уязвим при линьке','Требует много пищи']},
+  {match:{body:'arthropod',limbs:'jointed',env:'land',size:'giant'},
+   name:'Меганевра', latin:'Meganeura', epoch:'Карбон, 305–299 млн лет назад',
+   who:'Гигантская стрекоза каменноугольных лесов. Охотилась на насекомых и мелких позвоночных.',
+   abilities:['Полёт','Огромные фасеточные глаза','Хваткие ноги','Быстрый манёвр в воздухе'],
+   weak:['Хрупкие крылья','Зависит от высокого кислорода']},
+  {match:{body:'chordate',limbs:'fins',env:'ocean',size:'medium'},
+   name:'Пикайя', latin:'Pikaia gracilens', epoch:'Кембрий, 505 млн лет назад',
+   who:'Одно из первых хордовых. Плавало в кембрийских морях, закладывая основу будущих позвоночных.',
+   abilities:['Хорда — предшественник позвоночника','Плавное плавание','Мышечные сегменты'],
+   weak:['Нет челюстей','Мелкий размер']},
+  {match:{body:'chordate',limbs:'jointed',env:'land',size:'medium'},
+   name:'Тиктаалик', latin:'Tiktaalik roseae', epoch:'Девон, 375 млн лет назад',
+   who:'Переходное звено между рыбами и земноводными. Мог выползать на сушу, опираясь на плавники.',
+   abilities:['Плавники-конечности','Дыхание воздухом','Ползание по мелководью'],
+   weak:['Медлителен на суше','Нуждается во влаге']},
+  {match:{body:'chordate',limbs:'fins',env:'ocean',size:'giant',nutrition:['heterotroph','predator']},
+   name:'Мегалодон', latin:'Otodus megalodon', epoch:'Неоген, 23–3.6 млн лет назад',
+   who:'Гигантская акула. Охотилась на китов и крупных морских животных.',
+   abilities:['Огромные челюсти','Быстрое плавание','Обоняние','Смена зубов'],
+   weak:['Требует огромного количества пищи','Медленно размножается']},
+  {match:{body:'mollusk',skeleton:'carbonate',env:'bottom'},
+   name:'Аммонит', latin:'Ammonoidea', epoch:'Девон–мел, 409–66 млн лет назад',
+   who:'Спирально-раковинный головоногий моллюск. Плавал в древних морях, регулируя плавучесть.',
+   abilities:['Спиральная раковина','Регулировка плавучести','Щупальца','Реактивное движение'],
+   weak:['Медлителен','Уязвим для крупных хищников']},
+  {match:{body:'echinoderm',env:'bottom'},
+   name:'Морская лилия', latin:'Crinoidea', epoch:'Ордовик–наши дни, 485 млн лет назад — сейчас',
+   who:'Прикреплённое иглокожее, фильтрующее воду. Живёт на дне, прикрепившись стеблем.',
+   abilities:['Радиальная симметрия','Фильтрация воды','Прикрепление ко дну','Регенерация лучей'],
+   weak:['Неподвижна','Уязвима для хищников']},
+  {match:{body:'sponge',env:'bottom'},
+   name:'Губка', latin:'Porifera', epoch:'Кембрий–наши дни, 580 млн лет назад — сейчас',
+   who:'Простейшее многоклеточное животное. Фильтрует воду через поры, не имея органов.',
+   abilities:['Фильтрация воды','Регенерация из частей','Химическая защита'],
+   weak:['Неподвижна','Очень медленно растёт']},
+  {match:{body:'chordate',limbs:'jointed',env:'land',social:'colonial',size:'medium',human:true},
+   name:'Человек разумный', latin:'Homo sapiens', epoch:'Современность, 300 тыс. лет назад — сейчас',
+   who:'Разумное социальное существо. Использует орудия, огонь и язык. Строит цивилизации.',
+   abilities:['Абстрактное мышление','Речь и письменность','Орудия труда','Огонь','Социальная организация'],
+   weak:['Физически слаб','Зависит от общества','Уязвим к болезням']},
+];
+
+// ============ СУЩЕСТВА ============
+const BASES = ['sponge','worm','arthropod','mollusk','chordate','echinoderm'];
+
+function generateLatinName(){
+  const t = S.traits;
+  const prefixes = {sponge:'Spongi',worm:'Vermi',arthropod:'Arthro',mollusk:'Mollu',chordate:'Chorda',echinoderm:'Echino'};
+  const skelRoot = {none:'mollis',chitin:'chitina',carbonate:'calcia'}[t.skeleton];
+  const limbRoot = {none:'apoda',fins:'pteryx',jointed:'poda'}[t.limbs];
+  const eyeRoot = {none:'opsia',eyes:'optica',echolocation:'sonara'}[t.eyes];
+  const envRoot = {ocean:'pelagica',bottom:'benthica',land:'terrena'}[t.env] || 'incognita';
+  const sizeRoot = {small:'nana',medium:'media',giant:'gigas'}[t.size];
+  const base = prefixes[t.body] || 'Prioni';
+  return `*${base}${skelRoot} ${limbRoot}${eyeRoot} ${envRoot} ${sizeRoot}*`;
+}
+function generateRussianName(){
+  const t = S.traits;
+  const adj = [];
+  if(t.nutrition==='autotroph') adj.push('симбиотический');
+  else if(t.predation || t.nutrition==='predator' || t.nutrition==='heterotroph') adj.push('хищный');
+  else adj.push('мирный');
+  if(t.skeleton==='chitin') adj.push('панцирный');
+  else if(t.skeleton==='carbonate') adj.push('раковинный');
+  if(t.symmetry) adj.push('двусторонний');
+  if(t.size==='giant') adj.push('гигантский');
+  else if(t.size==='small') adj.push('миниатюрный');
+  const noun = {
+    sponge:'фильтратор', worm:'червь', arthropod:'членистоног',
+    mollusk:'моллюск', chordate:'хордовый', echinoderm:'иглокожий'
+  }[t.body] || 'организм';
+  return adj.slice(0,2).join(' ') + ' ' + noun;
+}
+function findRealCreature(){
+  const t = S.traits;
+  for(const c of REAL_CREATURES){
+    const m = c.match;
+    let ok = true;
+    if(m.body && m.body !== t.body) ok = false;
+    if(m.skeleton && m.skeleton !== t.skeleton) ok = false;
+    if(m.limbs && m.limbs !== t.limbs) ok = false;
+    if(m.eyes && m.eyes !== t.eyes) ok = false;
+    if(m.env && m.env !== t.env) ok = false;
+    if(m.size && m.size !== t.size) ok = false;
+    if(m.social && m.social !== t.social) ok = false;
+    if(m.nutrition && !m.nutrition.includes(t.nutrition)) ok = false;
+    if(m.human && !(t.branch==='human' || t.human)) ok = false;
+    if(ok) return c;
+  }
+  return null;
+}
+
+// ============ ОТРИСОВКА ============
+function circle(x,y,r,color,glow=0){
+  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+  if(glow){ ctx.shadowColor = color; ctx.shadowBlur = glow; }
+  ctx.fillStyle = color; ctx.fill(); ctx.shadowBlur = 0;
+}
+function glowCircle(x,y,r,color,glow){
+  ctx.save();
+  const g = ctx.createRadialGradient(x,y,0,x,y,r*3);
+  g.addColorStop(0,color); g.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(x,y,r*3,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+function drawCircleC(c,x,y,r,color,glow=0){
+  c.beginPath(); c.arc(x,y,r,0,Math.PI*2);
+  if(glow){ c.shadowColor = color; c.shadowBlur = glow; }
+  c.fillStyle = color; c.fill(); c.shadowBlur = 0;
+}
+function drawCreatureTo(c, x, y, scale, t, time){
+  const base = t.body || 'worm';
+  const skel = t.skeleton;
+  const limbs = t.limbs;
+  const eyes = t.eyes;
+  const size = t.size;
+  const social = t.social;
+  const s = scale * (size==='giant'?1.4:size==='small'?0.7:1);
+  const color = t.branch==='space' ? '#c06dff'
+    : t.branch==='human' ? '#ffd34d'
+    : t.nutrition==='autotroph'?'#5aff9a':t.nutrition==='mixotroph'?'#5affd0':'#ff9a3d';
+  const skelColor = skel==='chitin'?'#c08a4a':skel==='carbonate'?'#e8e8f0':'rgba(255,255,255,.2)';
+  const wobble = Math.sin(time*2)*0.1;
+  c.save();
+  c.translate(x,y);
+  c.rotate(wobble);
+  if(base==='sponge'){
+    for(let i=0;i<5;i++){
+      const a = (i/5)*Math.PI*2;
+      const r = 10*s;
+      drawCircleC(c, Math.cos(a)*r*0.5, Math.sin(a)*r*0.5, r*0.4, color, 10);
+    }
+    drawCircleC(c, 0,0,12*s,color,15);
+  } else if(base==='worm'){
+    for(let i=-3;i<=3;i++){
+      const seg = 6*s;
+      drawCircleC(c, i*seg*0.6, Math.sin(time*3+i)*2*s, 5*s, color, 6);
+    }
+  } else if(base==='arthropod'){
+    c.beginPath();
+    c.ellipse(0,0,14*s,8*s,0,0,Math.PI*2);
+    c.fillStyle=color; c.fill();
+    for(let i=-2;i<=2;i++){ drawCircleC(c, i*6*s, 0, 3*s, skelColor); }
+  } else if(base==='mollusk'){
+    drawCircleC(c, 0,0,13*s,color,12);
+    c.beginPath();
+    c.arc(0,0,15*s, Math.PI*1.1, Math.PI*1.9);
+    c.strokeStyle=skelColor; c.lineWidth=3*s; c.stroke();
+  } else if(base==='chordate'){
+    c.beginPath();
+    c.ellipse(0,0,16*s,7*s,0,0,Math.PI*2);
+    c.fillStyle=color; c.fill();
+    c.beginPath();
+    c.moveTo(14*s,0);
+    c.quadraticCurveTo(22*s, Math.sin(time*4)*4*s, 26*s, 0);
+    c.strokeStyle=color; c.lineWidth=3*s; c.stroke();
+  } else if(base==='echinoderm'){
+    for(let i=0;i<5;i++){
+      const a = (i/5)*Math.PI*2;
+      c.beginPath();
+      c.moveTo(0,0);
+      c.lineTo(Math.cos(a)*16*s, Math.sin(a)*16*s);
+      c.strokeStyle=color; c.lineWidth=4*s; c.stroke();
+    }
+    drawCircleC(c, 0,0,7*s,color,10);
+  }
+  if(skel!=='none'){
+    c.strokeStyle=skelColor; c.lineWidth=1.5*s;
+    c.beginPath(); c.arc(0,0,16*s,0,Math.PI*2); c.stroke();
+    if(skel==='carbonate'){
+      for(let i=0;i<6;i++){
+        const a=(i/6)*Math.PI*2;
+        c.beginPath();
+        c.moveTo(Math.cos(a)*12*s, Math.sin(a)*12*s);
+        c.lineTo(Math.cos(a)*18*s, Math.sin(a)*18*s);
+        c.stroke();
+      }
+    }
+  }
+  if(limbs==='fins'){
+    c.fillStyle='rgba(90,255,154,.6)';
+    c.beginPath(); c.moveTo(-8*s,0); c.lineTo(-18*s,-6*s); c.lineTo(-12*s,0); c.lineTo(-18*s,6*s); c.closePath(); c.fill();
+    c.beginPath(); c.moveTo(8*s,0); c.lineTo(18*s,-6*s); c.lineTo(12*s,0); c.lineTo(18*s,6*s); c.closePath(); c.fill();
+  } else if(limbs==='jointed'){
+    c.strokeStyle=skelColor; c.lineWidth=2*s;
+    for(let side=-1;side<=1;side+=2){
+      for(let i=0;i<3;i++){
+        c.beginPath();
+        c.moveTo(side*8*s, (i-1)*5*s);
+        c.lineTo(side*18*s, (i-1)*7*s);
+        c.stroke();
+      }
+    }
+  }
+  if(eyes==='eyes'){
+    drawCircleC(c, -5*s,-3*s,3*s,'#04121f');
+    drawCircleC(c, 5*s,-3*s,3*s,'#04121f');
+    drawCircleC(c, -5*s,-3*s,1.2*s,'#fff');
+    drawCircleC(c, 5*s,-3*s,1.2*s,'#fff');
+  } else if(eyes==='echolocation'){
+    c.strokeStyle='rgba(255,211,77,.4)'; c.lineWidth=1;
+    const r = (12+Math.sin(time*4)*4)*s;
+    c.beginPath(); c.arc(0,0,r,0,Math.PI*2); c.stroke();
+    c.beginPath(); c.arc(0,0,r*1.6,0,Math.PI*2); c.stroke();
+  }
+  if(social==='colonial'){
+    for(let i=0;i<4;i++){
+      const a = (i/4)*Math.PI*2 + time*0.5;
+      const r = 22*s;
+      drawCircleC(c, Math.cos(a)*r, Math.sin(a)*r, 3*s, color, 4);
+    }
+  }
+  c.restore();
+}
+function drawCreature(x, y, scale, t){
+  drawCreatureTo(ctx, x, y, scale, t, performance.now()/1000);
+}
+
+// ============ РАЗВИЛКИ ============
+const DECISIONS = [
+  {stage:1, id:'d1a', title:'Мутация 1', options:[
+    {id:'flagellum', icon:'🌀', title:'Жгутик', desc:'+30% скорости', apply:()=>{S.traits.flagellum=true;S.traits.speed+=0.3;}},
+    {id:'thickMembrane', icon:'🛡️', title:'Мембрана', desc:'+20% стабильности', apply:()=>{S.traits.thickMembrane=true;S.maxStab+=20;S.traits.armor+=0.2;}},
+    {id:'chemotaxis', icon:'📡', title:'Хемотаксис', desc:'Видишь частицы', apply:()=>{S.traits.chemotaxis=true;S.traits.senses+=1;}},
+    {id:'lipidBoost', icon:'🟢', title:'Липидный рост', desc:'+10 материи', apply:()=>{S.matter+=10;}},
+    {id:'nucleotideBoost', icon:'🔵', title:'Нуклеотиды', desc:'+10 ДНК', apply:()=>{S.info+=10;}},
+    {id:'carbBoost', icon:'🟡', title:'Углеводы', desc:'+15 энергии', apply:()=>{S.energy=Math.min(S.maxEnergy,S.energy+15);}},
+    {id:'uvShield', icon:'🟣', title:'УФ-защита', desc:'-20% урона УФ', apply:()=>{S.traits.armor+=0.2;}},
+    {id:'toxShield', icon:'⚗️', title:'Токсин-фильтр', desc:'-20% урона токсинов', apply:()=>{S.traits.regen+=0.2;}},
+    {id:'osmotic', icon:'💧', title:'Осморегуляция', desc:'+10 стабильности', apply:()=>{S.maxStab+=10;S.stab+=10;}},
+    {id:'replication', icon:'🧬', title:'Репликация', desc:'+5 ДНК', apply:()=>{S.traits.regen+=0.3;S.info+=5;}},
+    {id:'microTubule', icon:'〰️', title:'Микротрубочки', desc:'+уклонение', apply:()=>{S.traits.dodge+=0.1;}},
+    {id:'adhesionEarly', icon:'🔗', title:'Ранняя адгезия', desc:'+броня', apply:()=>{S.traits.armor+=0.15;S.traits.social='colonial';}},
+  ]},
+  {stage:1, id:'d1b', title:'Среда обитания', options:[
+    {id:'hotSpring', icon:'🌋', title:'Горячий источник', desc:'+энергия, +риск', apply:()=>{S.traits.speed+=0.1;S.maxEnergy+=10;S.traits.env='bottom';}},
+    {id:'mud', icon:'🟤', title:'Илистая отмель', desc:'+материя', apply:()=>{S.matter+=10;S.traits.armor+=0.1;S.traits.env='bottom';}},
+    {id:'openWater', icon:'🌊', title:'Открытая вода', desc:'Баланс', apply:()=>{S.traits.senses+=1;S.traits.env='ocean';}},
+    {id:'crystalCave', icon:'💎', title:'Кристальная пещера', desc:'+ДНК', apply:()=>{S.info+=10;S.traits.env='bottom';}},
+    {id:'reef', icon:'🪸', title:'Риф', desc:'+стабильность', apply:()=>{S.maxStab+=10;S.stab+=10;S.traits.env='ocean';}},
+    {id:'deepTrench', icon:'🕳️', title:'Глубоководье', desc:'+броня', apply:()=>{S.traits.armor+=0.2;S.traits.deepSea=true;S.traits.env='bottom';}},
+    {id:'geyser', icon:'♨️', title:'Гейзер', desc:'+скорость', apply:()=>{S.traits.speed+=0.15;S.traits.env='bottom';}},
+    {id:'saltFlat', icon:'🧂', title:'Солёная равнина', desc:'+регенерация', apply:()=>{S.traits.regen+=0.2;S.traits.env='bottom';}},
+    {id:'icePocket', icon:'🧊', title:'Ледяной карман', desc:'-урон от холода', apply:()=>{S.traits.armor+=0.15;S.traits.env='bottom';}},
+    {id:'lightShaft', icon:'☀️', title:'Световой столб', desc:'+фотосинтез', apply:()=>{S.traits.photosynthesis=true;S.traits.env='ocean';}},
+  ]},
+  {stage:2, id:'d2a', title:'Мутация 2', options:[
+    {id:'mitochondria', icon:'⚡', title:'Митохондрия', desc:'+50% энергии', apply:()=>{S.traits.mitochondria=true;S.maxEnergy+=20;}},
+    {id:'oxygenProof', icon:'💨', title:'Кислородоустойчивость', desc:'O₂ не токсичен', apply:()=>{S.traits.oxygenProof=true;S.traits.regen+=0.5;}},
+    {id:'cilia', icon:'〰️', title:'Реснички', desc:'+уклонение', apply:()=>{S.traits.cilia=true;S.traits.dodge+=0.15;}},
+    {id:'nucleus', icon:'⚛️', title:'Ядро', desc:'+ДНК', apply:()=>{S.info+=15;S.traits.senses+=1;}},
+    {id:'er', icon:'🧵', title:'ЭПС', desc:'+регенерация', apply:()=>{S.traits.regen+=0.3;}},
+    {id:'golgi', icon:'📦', title:'Аппарат Гольджи', desc:'+материя', apply:()=>{S.matter+=15;}},
+    {id:'lysosome', icon:'🧪', title:'Лизосома', desc:'+переваривание', apply:()=>{S.traits.vacuole=true;}},
+    {id:'chloroplast', icon:'🌿', title:'Хлоропласт', desc:'+фотосинтез', apply:()=>{S.traits.photosynthesis=true;S.traits.nutrition='mixotroph';}},
+    {id:'peroxisome', icon:'🧴', title:'Пероксисома', desc:'-токсины', apply:()=>{S.traits.armor+=0.15;}},
+    {id:'cytoskeleton', icon:'🦴', title:'Цитоскелет', desc:'+броня', apply:()=>{S.traits.armor+=0.2;}},
+    {id:'vacuoleBig', icon:'💧', title:'Большая вакуоль', desc:'+стабильность', apply:()=>{S.maxStab+=15;}},
+    {id:'flagellaExtra', icon:'🔱', title:'Доп. жгутики', desc:'+скорость', apply:()=>{S.traits.speed+=0.2;}},
+  ]},
+  {stage:2, id:'d2b', title:'Питание', options:[
+    {id:'autotroph', icon:'🌿', title:'Автотроф', desc:'Фотосинтез на свету', apply:()=>{S.traits.nutrition='autotroph';S.traits.photosynthesis=true;}},
+    {id:'heterotroph', icon:'🦷', title:'Гетеротроф', desc:'Энергия только из еды', apply:()=>{S.traits.nutrition='heterotroph';S.traits.predation=true;S.traits.speed+=0.2;}},
+    {id:'mixotroph', icon:'🌗', title:'Миксотроф', desc:'Оба, но слабее', apply:()=>{S.traits.nutrition='mixotroph';S.traits.photosynthesis=true;S.traits.predation=true;S.traits.senses+=1;}},
+    {id:'chemotroph', icon:'🧪', title:'Хемотроф', desc:'Химия вместо света', apply:()=>{S.traits.nutrition='chemotroph';S.traits.regen+=0.3;}},
+    {id:'osmotroph', icon:'💧', title:'Осмотроф', desc:'Всасывание', apply:()=>{S.traits.nutrition='osmotroph';S.traits.vacuole=true;}},
+    {id:'phagotroph', icon:'🍽️', title:'Фаготроф', desc:'Заглатывание', apply:()=>{S.traits.nutrition='phagotroph';S.traits.predation=true;S.maxEnergy+=10;}},
+    {id:'parasite', icon:'🦠', title:'Паразит', desc:'За счёт других', apply:()=>{S.traits.nutrition='parasite';S.traits.predation=true;S.traits.dodge+=0.1;}},
+    {id:'detritivore', icon:'🪵', title:'Детритофаг', desc:'Ест остатки', apply:()=>{S.traits.nutrition='detritivore';S.traits.vacuole=true;S.maxStab+=10;}},
+    {id:'symbiont', icon:'🤝', title:'Симбионт', desc:'Взаимопомощь', apply:()=>{S.traits.nutrition='symbiont';S.traits.symbiosis=true;S.traits.regen+=0.2;}},
+    {id:'predatorEarly', icon:'🗡️', title:'Хищник', desc:'Активная охота', apply:()=>{S.traits.nutrition='predator';S.traits.predation=true;S.traits.speed+=0.15;S.traits.eyes='eyes';}},
+  ]},
+  {stage:3, id:'d3a', title:'Мутация 3', options:[
+    {id:'adhesion', icon:'🔗', title:'Адгезия', desc:'Клетки слипаются', apply:()=>{S.traits.adhesion=true;S.traits.social='colonial';S.traits.armor+=0.1;}},
+    {id:'nerveImpulse', icon:'🧠', title:'Нервный импульс', desc:'+координация', apply:()=>{S.traits.nerveImpulse=true;S.traits.senses+=1;S.traits.dodge+=0.1;}},
+    {id:'vacuole', icon:'🍽️', title:'Вакуоль', desc:'+питание', apply:()=>{S.traits.vacuole=true;S.maxEnergy+=15;}},
+    {id:'muscleFiber', icon:'💪', title:'Мышечное волокно', desc:'+скорость', apply:()=>{S.traits.speed+=0.2;}},
+    {id:'cartilage', icon:'🦴', title:'Хрящ', desc:'+броня', apply:()=>{S.traits.armor+=0.2;}},
+    {id:'gillSlit', icon:'🫁', title:'Жаберная щель', desc:'+кислород', apply:()=>{S.traits.oxygenProof=true;S.traits.regen+=0.2;}},
+    {id:'eyeSpot', icon:'👁️', title:'Глазное пятно', desc:'+зрение', apply:()=>{S.traits.eyes='eyes';S.traits.senses+=1;}},
+    {id:'statocyst', icon:'⚖️', title:'Статоцист', desc:'+равновесие', apply:()=>{S.traits.dodge+=0.15;}},
+    {id:'nephridium', icon:'💧', title:'Нефридий', desc:'+выделение', apply:()=>{S.traits.regen+=0.2;S.maxStab+=10;}},
+    {id:'coelom', icon:'🕳️', title:'Целом', desc:'+полость', apply:()=>{S.maxStab+=15;S.traits.armor+=0.1;}},
+    {id:'segmentationEarly', icon:'🧩', title:'Сегментация', desc:'+гибкость', apply:()=>{S.traits.segmentation=true;S.traits.dodge+=0.1;}},
+    {id:'nerveCord', icon:'🪢', title:'Нервная цепочка', desc:'+реакция', apply:()=>{S.traits.nerveImpulse=true;S.traits.senses+=1;}},
+  ]},
+  {stage:3, id:'d3b', title:'Поведение', options:[
+    {id:'hunter', icon:'🗡️', title:'Охотник', desc:'Атакует', apply:()=>{S.traits.predation=true;S.traits.speed+=0.15;}},
+    {id:'feeder', icon:'🌾', title:'Собиратель', desc:'Собирает', apply:()=>{S.traits.regen+=0.3;S.maxStab+=10;}},
+    {id:'scavenger', icon:'🦴', title:'Падальщик', desc:'Ест всё', apply:()=>{S.traits.vacuole=true;S.maxEnergy+=10;}},
+    {id:'filterFeeder', icon:'🌊', title:'Фильтратор', desc:'Пропускает воду', apply:()=>{S.traits.vacuole=true;S.traits.regen+=0.2;}},
+    {id:'grazer', icon:'🐄', title:'Пастбищник', desc:'Медленно, но верно', apply:()=>{S.maxStab+=15;S.traits.armor+=0.1;}},
+    {id:'ambusher', icon:'🕷️', title:'Засадник', desc:'Ждёт добычу', apply:()=>{S.traits.predation=true;S.traits.dodge+=0.15;}},
+    {id:'swarm', icon:'🐝', title:'Роевой', desc:'Атакует толпой', apply:()=>{S.traits.social='colonial';S.traits.speed+=0.1;}},
+    {id:'burrower', icon:'🕳️', title:'Норник', desc:'Прячется', apply:()=>{S.traits.armor+=0.2;S.traits.dodge+=0.1;}},
+    {id:'swimmer', icon:'🏊', title:'Пловец', desc:'Быстрое движение', apply:()=>{S.traits.speed+=0.25;}},
+    {id:'drifter', icon:'🍃', title:'Дрейфующий', desc:'Пассивно', apply:()=>{S.maxEnergy+=15;S.traits.regen+=0.2;}},
+  ]},
+  {stage:4, id:'d4a', title:'Мутация 4', options:[
+    {id:'symmetry', icon:'⚖️', title:'Симметрия', desc:'+скорость', apply:()=>{S.traits.symmetry=true;S.traits.speed+=0.15;}},
+    {id:'segmentation', icon:'🧩', title:'Сегментация', desc:'+прочность', apply:()=>{S.traits.segmentation=true;S.traits.armor+=0.2;}},
+    {id:'skeletonFlag', icon:'🦴', title:'Скелет', desc:'+броня', apply:()=>{S.traits.skeletonFlag=true;S.traits.armor+=0.3;S.traits.speed-=0.1;S.traits.skeleton='chitin';}},
+    {id:'carbonateSkel', icon:'🐚', title:'Карбонатный скелет', desc:'+броня, тяжелее', apply:()=>{S.traits.skeleton='carbonate';S.traits.armor+=0.35;S.traits.speed-=0.15;}},
+    {id:'fins', icon:'🐟', title:'Плавники', desc:'+скорость в воде', apply:()=>{S.traits.limbs='fins';S.traits.speed+=0.15;}},
+    {id:'jointedLimbs', icon:'🦂', title:'Членистые конечности', desc:'+движение', apply:()=>{S.traits.limbs='jointed';S.traits.speed+=0.2;}},
+    {id:'eyesDevelop', icon:'👁️', title:'Развитые глаза', desc:'+зрение', apply:()=>{S.traits.eyes='eyes';S.traits.senses+=1;}},
+    {id:'echolocation', icon:'📡', title:'Эхолокация', desc:'+чувства', apply:()=>{S.traits.eyes='echolocation';S.traits.senses+=2;}},
+    {id:'gills', icon:'🫁', title:'Жабры', desc:'+дыхание', apply:()=>{S.traits.oxygenProof=true;S.maxStab+=10;}},
+    {id:'closedCirculation', icon:'❤️', title:'Кровеносная', desc:'+энергия', apply:()=>{S.maxEnergy+=20;S.traits.regen+=0.2;}},
+    {id:'digestiveGland', icon:'🍽️', title:'Пищевар. железа', desc:'+питание', apply:()=>{S.traits.vacuole=true;S.maxEnergy+=15;}},
+    {id:'armorPlates', icon:'🛡️', title:'Броня', desc:'+защита', apply:()=>{S.traits.armor+=0.3;}},
+  ]},
+  {stage:4, id:'d4b', title:'Тип тела', options:[
+    {id:'bodySponge', icon:'🧽', title:'Губка', desc:'Фильтрация', apply:()=>{S.traits.body='sponge';S.traits.regen+=0.3;}},
+    {id:'bodyWorm', icon:'🪱', title:'Червь', desc:'Гибкость', apply:()=>{S.traits.body='worm';S.traits.speed+=0.1;S.traits.dodge+=0.1;}},
+    {id:'bodyArthropod', icon:'🦂', title:'Членистоногое', desc:'Броня', apply:()=>{S.traits.body='arthropod';S.traits.armor+=0.3;S.traits.limbs='jointed';}},
+    {id:'bodyMollusk', icon:'🐚', title:'Моллюск', desc:'Раковина', apply:()=>{S.traits.body='mollusk';S.traits.skeleton='carbonate';S.traits.armor+=0.2;}},
+    {id:'bodyChordate', icon:'🐟', title:'Хордовое', desc:'Хорда', apply:()=>{S.traits.body='chordate';S.traits.symmetry=true;S.traits.speed+=0.2;}},
+    {id:'bodyEchinoderm', icon:'⭐', title:'Иглокожее', desc:'Радиальная', apply:()=>{S.traits.body='echinoderm';S.traits.armor+=0.2;}},
+    {id:'bodyFlatworm', icon:'🪱', title:'Плоский червь', desc:'Простота', apply:()=>{S.traits.body='worm';S.traits.regen+=0.3;}},
+    {id:'bodyAnnelid', icon:'🪱', title:'Кольчатый', desc:'Сегменты', apply:()=>{S.traits.body='worm';S.traits.segmentation=true;S.traits.speed+=0.1;}},
+    {id:'bodyCnidarian', icon:'🪼', title:'Стрекающее', desc:'Щупальца', apply:()=>{S.traits.body='sponge';S.traits.predation=true;S.traits.senses+=1;}},
+    {id:'bodyCrustacean', icon:'🦀', title:'Ракообразное', desc:'Панцирь', apply:()=>{S.traits.body='arthropod';S.traits.armor+=0.35;}},
+  ]},
+  {stage:5, id:'d5a', title:'Финальная адаптация', options:[
+    {id:'gigantism', icon:'🐋', title:'Гигантизм', desc:'Большой размер', apply:()=>{S.traits.gigantism=true;S.traits.size='giant';S.maxStab+=30;}},
+    {id:'miniaturization', icon:'🐜', title:'Миниатюризация', desc:'Малый размер', apply:()=>{S.traits.miniaturization=true;S.traits.size='small';S.traits.speed+=0.2;S.traits.dodge+=0.15;}},
+    {id:'migration', icon:'🧭', title:'Миграция', desc:'Приспособляемость', apply:()=>{S.traits.migration=true;S.traits.senses+=1;}},
+    {id:'armorSpikes', icon:'🌵', title:'Шипы', desc:'+броня', apply:()=>{S.traits.armor+=0.3;}},
+    {id:'venom', icon:'☠️', title:'Яд', desc:'+атака', apply:()=>{S.traits.predation=true;S.traits.speed+=0.1;}},
+    {id:'camouflage', icon:'🦎', title:'Камуфляж', desc:'+уклонение', apply:()=>{S.traits.dodge+=0.2;}},
+    {id:'regeneration', icon:'♻️', title:'Регенерация', desc:'+восстановление', apply:()=>{S.traits.regen+=0.4;}},
+    {id:'sonar', icon:'📡', title:'Сонар', desc:'+чувства', apply:()=>{S.traits.eyes='echolocation';S.traits.senses+=2;}},
+    {id:'bioluminescence', icon:'✨', title:'Биолюминесценция', desc:'+свет', apply:()=>{S.traits.senses+=1;S.traits.regen+=0.1;}},
+    {id:'schooling', icon:'🐟', title:'Стайность', desc:'+социум', apply:()=>{S.traits.social='colonial';S.maxStab+=10;}},
+    {id:'symbioticAlgae', icon:'🌿', title:'Симбиотич. водоросли', desc:'+фотосинтез', apply:()=>{S.traits.photosynthesis=true;S.traits.nutrition='mixotroph';S.traits.symbiosis=true;}},
+    {id:'shellHard', icon:'🐚', title:'Твёрдая раковина', desc:'+броня', apply:()=>{S.traits.skeleton='carbonate';S.traits.armor+=0.3;}},
+  ]},
+  {stage:5, id:'d5b', title:'Среда', options:[
+    {id:'ocean', icon:'🌊', title:'Океан', desc:'Открытая вода', apply:()=>{S.traits.env='ocean';S.traits.speed+=0.1;}},
+    {id:'bottom', icon:'🪨', title:'Дно', desc:'Укрытия', apply:()=>{S.traits.env='bottom';S.traits.armor+=0.2;}},
+    {id:'land', icon:'🌍', title:'Суша', desc:'Пионер', apply:()=>{S.traits.env='land';S.traits.landPioneer=true;S.traits.regen+=0.2;}},
+    {id:'reefZone', icon:'🪸', title:'Рифы', desc:'Много жизни', apply:()=>{S.traits.env='ocean';S.traits.regen+=0.2;}},
+    {id:'deepSea', icon:'🕳️', title:'Глубины', desc:'Экстрим', apply:()=>{S.traits.env='bottom';S.traits.deepSea=true;S.traits.armor+=0.2;}},
+    {id:'swamp', icon:'🌾', title:'Болото', desc:'Ил и вода', apply:()=>{S.traits.env='bottom';S.traits.dodge+=0.1;}},
+    {id:'river', icon:'🏞️', title:'Река', desc:'Течение', apply:()=>{S.traits.env='ocean';S.traits.speed+=0.15;}},
+    {id:'lagoon', icon:'🏝️', title:'Лагуна', desc:'Тепло', apply:()=>{S.traits.env='ocean';S.traits.regen+=0.15;}},
+    {id:'polar', icon:'🧊', title:'Полярные воды', desc:'Холод', apply:()=>{S.traits.env='ocean';S.traits.armor+=0.15;}},
+    {id:'hydrothermal', icon:'🌋', title:'Гидротермаль', desc:'Экстрим', apply:()=>{S.traits.env='bottom';S.traits.armor+=0.25;S.traits.regen+=0.1;}},
+  ]},
+  {stage:5, id:'d5c', title:'Социум', options:[
+    {id:'solitary', icon:'🚶', title:'Одиночка', desc:'Независимость', apply:()=>{S.traits.social='solitary';S.traits.speed+=0.1;}},
+    {id:'colonial', icon:'👥', title:'Колония', desc:'Взаимопомощь', apply:()=>{S.traits.social='colonial';S.maxStab+=15;S.traits.regen+=0.2;}},
+    {id:'hive', icon:'🐝', title:'Улей', desc:'Иерархия', apply:()=>{S.traits.social='colonial';S.traits.armor+=0.2;}},
+    {id:'pack', icon:'🐺', title:'Стая', desc:'Совместная охота', apply:()=>{S.traits.social='colonial';S.traits.predation=true;S.traits.speed+=0.1;}},
+    {id:'symbiotic', icon:'🤝', title:'Симбиоз', desc:'С другими', apply:()=>{S.traits.social='colonial';S.traits.symbiosis=true;S.traits.regen+=0.2;}},
+    {id:'parasitic', icon:'🦠', title:'Паразитизм', desc:'За счёт других', apply:()=>{S.traits.social='solitary';S.traits.predation=true;S.maxEnergy+=10;}},
+    {id:'mutualist', icon:'🌿', title:'Мутуализм', desc:'Выгода', apply:()=>{S.traits.social='colonial';S.traits.regen+=0.3;}},
+    {id:'territorial', icon:'🏰', title:'Территория', desc:'Защита', apply:()=>{S.traits.social='solitary';S.traits.armor+=0.2;}},
+    {id:'nomadic', icon:'🧭', title:'Кочёвка', desc:'Движение', apply:()=>{S.traits.social='solitary';S.traits.speed+=0.15;S.traits.migration=true;}},
+    {id:'eusocial', icon:'🏛️', title:'Эусоциальность', desc:'Сложная', apply:()=>{S.traits.social='colonial';S.maxStab+=20;S.traits.senses+=1;}},
+  ]},
+];
+
+let decisionIndex = 0;
+const TOTAL_DECISIONS = DECISIONS.length;
+
+function showDecision(decision, onDone){
+  const box = $('mutList'); box.innerHTML = '';
+  $('mutTitle').textContent = decision.title;
+  decisionIndex++;
+  $('mutSub').textContent = `Развилка ${decisionIndex} из ${TOTAL_DECISIONS}`;
+  decision.options.forEach(o => {
+    const card = document.createElement('div');
+    card.className = 'mut-card';
+    card.innerHTML = `<div class="mc-icon">${o.icon}</div><div class="mc-title">${o.title}</div><div class="mc-desc">${o.desc}</div>`;
+    card.onclick = () => {
+      o.apply();
+      S.decisions.push(o.id);
+      hideAllScreens();
+      onDone();
+    };
+    box.appendChild(card);
+  });
+  showScreen('mutationScreen');
+  setStageProgress(null);
+}
+
+function showStageIntro(title, text, onStart){
+  $('siTitle').textContent = title;
+  $('siText').textContent = text;
+  showScreen('stageIntro');
+  setStageProgress(null);
+  $('siBtn').onclick = () => { hideAllScreens(); onStart(); };
+}
+
+function drawBackground(){
+  const g = ctx.createRadialGradient(W/2, H*0.35, 20, W/2, H*0.5, Math.max(W,H)*0.85);
+  if(S.stage <= 3){ g.addColorStop(0,'#0a1a2e'); g.addColorStop(0.6,'#071221'); g.addColorStop(1,'#04080f'); }
+  else { g.addColorStop(0,'#0a2438'); g.addColorStop(0.6,'#071826'); g.addColorStop(1,'#040a12'); }
+  ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+  const t = performance.now()/1000;
+  for(let i=0;i<20;i++){
+    const seed = i*137.5;
+    const x = ((seed*7.3 + t*12*(i%3+1)) % (W+40)) - 20;
+    const y = ((seed*3.7 + t*8*(i%2+1)) % (H+40)) - 20;
+    const r = 0.6 + (i%5)*0.5;
+    ctx.globalAlpha = 0.10 + (i%4)*0.04;
+    circle(x,y,r,'#7fe8ff');
+  }
+  ctx.globalAlpha = 1;
+}
+
+let lastT = 0;
+function loop(ts){
+  const dt = Math.min(0.05, (ts - lastT)/1000 || 0.016);
+  lastT = ts;
+  if(S.running && !S.paused){
+    S.elapsed += dt;
+    if(S.st && S.st.update) S.st.update(dt);
+    updateHUD();
+  }
+  ctx.clearRect(0,0,W,H);
+  drawBackground();
+  if(S.st && S.st.draw) S.st.draw(dt);
+  requestAnimationFrame(loop);
+}
+
+// ============ СТАДИЯ 1: РНК-МИР ============
+// Логика: все частицы двигают прогресс, но липиды быстрее (строят мембрану).
+// Среда определяет, каких частиц больше.
+function Stage1(){
+  const chain = [{x:W/2, y:H*0.42}];
+  const particles = [], hazards = [];
+  let progress = 0, spawnT = 0, hazT = 0, done = false;
+  const speedBase = () => 170 * (S.traits.flagellum?1.3:1) * (S.traits.thickMembrane?0.9:1);
+  // среда определяет состав частиц
+  const envWeights = S.traits.env === 'bottom'
+    ? {lipid:0.5, nuc:0.25, carb:0.25} // илистая отмель: больше липидов
+    : S.traits.env === 'ocean'
+    ? {lipid:0.35, nuc:0.4, carb:0.25} // открытая вода: больше ДНК
+    : {lipid:0.4, nuc:0.3, carb:0.3};
+  function spawnParticle(){
+    const r = Math.random();
+    let type, color, val, weight;
+    if(r < envWeights.lipid){ type='lipid'; color='#5aff9a'; val='matter'; weight=0.035; }
+    else if(r < envWeights.lipid+envWeights.nuc){ type='nucleotide'; color='#3da9ff'; val='info'; weight=0.015; }
+    else { type='carb'; color='#ffd34d'; val='energy'; weight=0.01; }
+    particles.push({ x: 25+Math.random()*(W-50), y: 70+Math.random()*(H-140),
+      r: 5+Math.random()*3, type, color, val, weight, life:1, pulse: Math.random()*6 });
+  }
+  function spawnHazard(){
+    const edge = Math.floor(Math.random()*4);
+    let x,y;
+    if(edge===0){ x=Math.random()*W; y=-20; }
+    else if(edge===1){ x=W+20; y=Math.random()*H; }
+    else if(edge===2){ x=Math.random()*W; y=H+20; }
+    else { x=-20; y=Math.random()*H; }
+    const isTox = Math.random()<0.35;
+    hazards.push({ x,y, vx:(W/2-x)*0.008+(Math.random()-.5)*14, vy:(H/2-y)*0.008+(Math.random()-.5)*14,
+      r: isTox?9:7, type: isTox?'tox':'uv', color: isTox?'#c06dff':'#ff5a5a', life:1, pulse: Math.random()*6 });
+  }
+  return {
+    update(dt){
+      if(done) return;
+      const head = chain[0];
+      moveEntity(head, dt, speedBase(), { minX:15, maxX:W-15, minY:70, maxY:H-20 });
+      for(let i=1;i<chain.length;i++){
+        const p = chain[i-1], c = chain[i];
+        const dx = p.x-c.x, dy = p.y-c.y;
+        const d = Math.hypot(dx,dy)||1;
+        const gap = 12;
+        if(d > gap){ c.x += dx/d*(d-gap); c.y += dy/d*(d-gap); }
+      }
+      spawnT -= dt;
+      if(spawnT<=0){ spawnT=0.42; if(particles.length<28) spawnParticle(); }
+      hazT -= dt;
+      if(hazT<=0){ hazT=1.8; if(hazards.length<8) spawnHazard(); }
+      for(let i=particles.length-1;i>=0;i--){
+        const p = particles[i];
+        p.life -= dt*0.07; p.pulse += dt*4;
+        if(p.life<=0){ particles.splice(i,1); continue; }
+        if(Math.hypot(head.x-p.x, head.y-p.y) < 18){
+          // ВСЕ частицы двигают прогресс, но с разным весом
+          progress += p.weight;
+          if(p.val==='matter') S.matter += 5;
+          if(p.val==='info') S.info += 4;
+          if(p.val==='energy') S.energy = Math.min(S.maxEnergy, S.energy+8);
+          particles.splice(i,1);
+        }
+      }
+      for(let i=hazards.length-1;i>=0;i--){
+        const h = hazards[i];
+        h.x += h.vx*dt; h.y += h.vy*dt; h.pulse += dt*5; h.life -= dt*0.04;
+        if(h.life<=0 || h.x<-40 || h.x>W+40 || h.y<-40 || h.y>H+40){ hazards.splice(i,1); continue; }
+        for(const c of chain){
+          if(Math.hypot(c.x-h.x, c.y-h.y) < h.r+8){
+            if(h.type==='uv') S.stab = Math.max(0, S.stab-12*(1-S.traits.armor*0.5));
+            else S.energy = Math.max(0, S.energy-10*(1-S.traits.armor*0.5));
+            hazards.splice(i,1); break;
+          }
+        }
+      }
+      S.energy = Math.max(0, S.energy - dt*2.2);
+      if(S.energy<=0 || S.stab<=0){ death(); return; }
+      setStageProgress(progress);
+      setStatusHint('Зелёные быстрее строят мембрану, но все частицы полезны');
+      if(progress >= 1 && !done){
+        done = true; setStageProgress(null);
+        banner('ОСМОТИЧЕСКИЙ ШОК!');
+        if(S.stab <= 40){ S.stab = Math.max(10, S.stab-20); toast('Мембрана повреждена, но ты выжил!'); }
+        else toast('Мембрана сформирована!');
+        setTimeout(()=>{ finishStage1(); }, 1000);
+      }
+    },
+    draw(){
+      particles.forEach(p => {
+        ctx.globalAlpha = (0.5+Math.sin(p.pulse)*0.3) * p.life;
+        glowCircle(p.x,p.y,p.r,p.color,8);
+        circle(p.x,p.y,p.r,p.color,6);
+        if(S.traits.chemotaxis && p.val!=='energy'){
+          ctx.globalAlpha = 0.5; ctx.strokeStyle = p.color; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.arc(p.x,p.y,p.r+5,0,Math.PI*2); ctx.stroke();
+        }
+      });
+      ctx.globalAlpha = 1;
+      hazards.forEach(h => {
+        ctx.globalAlpha = (0.6+Math.sin(h.pulse)*0.3) * h.life;
+        glowCircle(h.x,h.y,h.r,h.color,12);
+        circle(h.x,h.y,h.r,h.color,10);
+      });
+      ctx.globalAlpha = 1;
+      ctx.lineCap='round';
+      for(let i=chain.length-1;i>0;i--){
+        const c = chain[i], p = chain[i-1];
+        const t = i/chain.length;
+        ctx.strokeStyle = `rgba(${90+Math.floor(t*80)}, ${255-Math.floor(t*80)}, 154, ${0.35+0.5*(1-t)})`;
+        ctx.lineWidth = 7 - t*3;
+        ctx.beginPath(); ctx.moveTo(c.x,c.y); ctx.lineTo(p.x,p.y); ctx.stroke();
+      }
+      chain.forEach((c,i) => {
+        const t = i/chain.length;
+        const r = i===0 ? 10 : 6 - t*2;
+        glowCircle(c.x,c.y,r,'#5aff9a', i===0?14:4);
+        circle(c.x,c.y,r, i===0?'#5aff9a':`rgba(90,255,154,${0.7-t*0.4})`);
+      });
+    }
+  };
+  function finishStage1(){
+    S.running = false; S.stage = 1;
+    S.energy = Math.min(S.maxEnergy, S.energy+30);
+    clearActionButtons();
+    showDecision(DECISIONS[0], ()=> showDecision(DECISIONS[1], ()=> startStage2Intro()));
+  }
+}
+function startStage1Intro(){
+  decisionIndex = 0;
+  showStageIntro('СТАДИЯ 1: РНК-МИР',
+    'Ты — цепочка РНК. Веди джойстик, собирай частицы. ВСЕ они двигают прогресс мембраны, но зелёные (липиды) — быстрее. Среда определяет, каких частиц больше.',
+    ()=>{ startStage1(); S.decisions = []; });
+}
+function startStage1(){
+  S.stage = 1;
+  S.energy = S.maxEnergy = 100;
+  S.matter = 0; S.info = 0; S.stab = S.maxStab = 100;
+  S.st = Stage1();
+  hideAllScreens();
+  S.running = true; S.paused = false; S.elapsed = 0;
+  clearActionButtons();
+  toast('Тяни джойстик справа!', 1600);
+}
+
+// ============ СТАДИЯ 2: LUCA ============
+// Логика: ДНК копится только при сытости (энергия > 50%).
+// ДНК даёт регенерацию. Ползунок ДНК теперь имеет смысл.
+function Stage2(){
+  const cell = { x:W/2, y:H*0.42, r:16 };
+  const nutrients = [], predators = [];
+  let spawnT = 0, predT = 2;
+  let sliders = { growth:0.33, dna:0.33, move:0.34 };
+  let o2 = 0, o2Started = false, done = false;
+  let hidden = false, hideTimer = 0;
+  const sliderBox = $('sliders');
+  sliderBox.innerHTML = `
+    <div class="slider-row"><span>РОСТ</span><input type="range" min="0" max="100" value="33" id="sGrowth"></div>
+    <div class="slider-row"><span>ДНК</span><input type="range" min="0" max="100" value="33" id="sDna"></div>
+    <div class="slider-row"><span>ДВИЖ</span><input type="range" min="0" max="100" value="34" id="sMove"></div>
+  `;
+  sliderBox.classList.add('active');
+  const sg = $('sGrowth'), sd = $('sDna'), sm = $('sMove');
+  function syncSliders(changed){
+    let g = +sg.value, d = +sd.value, m = +sm.value;
+    if(changed==='g'){ const rest = 100-g; const sum = d+m || 1; d = rest*(d/sum); m = rest*(m/sum); sd.value=d; sm.value=m; }
+    if(changed==='d'){ const rest = 100-d; const sum = g+m || 1; g = rest*(g/sum); m = rest*(m/sum); sg.value=g; sm.value=m; }
+    if(changed==='m'){ const rest = 100-m; const sum = g+d || 1; g = rest*(g/sum); d = rest*(d/sum); sg.value=g; sd.value=d; }
+    sliders.growth = g/100; sliders.dna = d/100; sliders.move = m/100;
+  }
+  sg.oninput = ()=>syncSliders('g');
+  sd.oninput = ()=>syncSliders('d');
+  sm.oninput = ()=>syncSliders('m');
+  setupActionButtons([
+    { label:'ДЕЛИТЬСЯ', onClick:()=>{
+      if(S.energy > 40){ S.energy -= 40; S.stab = Math.min(S.maxStab, S.stab+25); toast('Клетка делится!'); }
+      else toast('Мало энергии');
+    }},
+    { label:'ПРЯТАТЬСЯ', alt:true, onClick:(btn)=>{
+      hidden = !hidden; hideTimer = 0;
+      btn.textContent = hidden ? 'ВСПЛЫТЬ' : 'ПРЯТАТЬСЯ';
+      toast(hidden ? 'Прячешься в иле' : 'Выходишь из укрытия');
+    }},
+  ]);
+  function spawnNutrient(){
+    // 3 типа: энергия, материя, ДНК (новый!)
+    const r = Math.random();
+    let type, color;
+    if(r < 0.4){ type='energy'; color='#ffd34d'; }
+    else if(r < 0.7){ type='matter'; color='#5aff9a'; }
+    else { type='info'; color='#c06dff'; }
+    nutrients.push({ x: 25+Math.random()*(W-50), y: 70+Math.random()*(H-140), r:5, type,
+      color, pulse: Math.random()*6, life:1 });
+  }
+  function spawnPredator(){
+    const edge = Math.floor(Math.random()*4);
+    let x,y;
+    if(edge===0){ x=Math.random()*W; y=-15; } else if(edge===1){ x=W+15; y=Math.random()*H; }
+    else if(edge===2){ x=Math.random()*W; y=H+15; } else { x=-15; y=Math.random()*H; }
+    predators.push({ x,y,r:10, color:'#ff5a5a', pulse: Math.random()*6, speed: 30+Math.random()*15 });
+  }
+  return {
+    update(dt){
+      if(done) return;
+      hideTimer += dt;
+      const baseSpeed = 70 + sliders.move*90;
+      const speed = baseSpeed * (S.traits.flagellum?1.3:1) * (S.traits.thickMembrane?0.9:1) * (hidden?0.15:1) * S.traits.speed;
+      moveEntity(cell, dt, speed, { minX:18, maxX:W-18, minY:70, maxY:H-20 });
+      S.energy = Math.max(0, S.energy - dt*(4 - sliders.growth*1.5));
+      // ДНК копится только при сытости (энергия > 40% от максимума)
+      const wellFed = S.energy > S.maxEnergy * 0.4;
+      if(wellFed && sliders.dna > 0){
+        S.info += dt*sliders.dna*3;
+      }
+      // ДНК даёт регенерацию стабильности (видимый эффект!)
+      if(sliders.dna > 0.3 && S.info > 5){
+        S.stab = Math.min(S.maxStab, S.stab + dt*sliders.dna*0.8);
+        S.info = Math.max(0, S.info - dt*0.3);
+      }
+      if(sliders.growth>0){
+        S.matter += dt*sliders.growth*2;
+        if(S.matter >= 20){ S.matter -= 20; S.maxStab += 3; S.stab = Math.min(S.maxStab, S.stab+3); }
+      }
+      S.stab = Math.max(0, S.stab - dt*0.4);
+      if(S.energy<=0 || S.stab<=0){ death(); return; }
+      if(!o2Started && S.elapsed > 22){
+        o2Started = true;
+        banner('КИСЛОРОДНАЯ КАТАСТРОФА!');
+        toast('Кислород токсичен!', 2400);
+      }
+      if(o2Started){
+        o2 = Math.min(1, o2+dt*0.06);
+        S.o2 = o2;
+        if(!S.traits.oxygenProof) S.stab = Math.max(0, S.stab - dt*o2*2.5*(1-S.traits.armor*0.5));
+      }
+      spawnT -= dt;
+      if(spawnT<=0){ spawnT=0.9; if(nutrients.length<20) spawnNutrient(); }
+      predT -= dt;
+      if(predT<=0){ predT=2.8; if(predators.length<5) spawnPredator(); }
+      for(let i=nutrients.length-1;i>=0;i--){
+        const n = nutrients[i];
+        n.pulse += dt*4; n.life -= dt*0.05;
+        if(n.life<=0){ nutrients.splice(i,1); continue; }
+        if(Math.hypot(cell.x-n.x, cell.y-n.y) < cell.r+n.r+4){
+          if(n.type==='energy') S.energy = Math.min(S.maxEnergy, S.energy+12);
+          else if(n.type==='matter') S.matter += 6;
+          else if(n.type==='info') S.info += 8;
+          nutrients.splice(i,1);
+        }
+      }
+      for(let i=predators.length-1;i>=0;i--){
+        const p = predators[i];
+        p.pulse += dt*4;
+        const dx = cell.x-p.x, dy = cell.y-p.y;
+        const d = Math.hypot(dx,dy)||1;
+        p.x += dx/d * p.speed*dt;
+        p.y += dy/d * p.speed*dt;
+        if(d < cell.r+p.r){
+          if(hidden && hideTimer < 2){ /* невидим */ }
+          else {
+            S.stab = Math.max(0, S.stab-18*(1-S.traits.armor*0.5));
+            if(S.traits.cilia) S.stab = Math.min(S.maxStab, S.stab+5);
+            predators.splice(i,1);
+            toast('Хищник атаковал!');
+          }
+        }
+      }
+      setStageProgress(S.elapsed/55);
+      setStatusHint(wellFed ? 'Сыт → ДНК копится → регенерация' : 'Голоден → ДНК не копится. Ешь!');
+      if(S.elapsed > 55 && !done){ done = true; finishStage2(); }
+    },
+    draw(){
+      nutrients.forEach(n=>{
+        ctx.globalAlpha = 0.6+Math.sin(n.pulse)*0.25;
+        glowCircle(n.x,n.y,n.r,n.color,8);
+        circle(n.x,n.y,n.r,n.color,6);
+      });
+      ctx.globalAlpha = 1;
+      predators.forEach(p=>{
+        glowCircle(p.x,p.y,p.r,p.color,12);
+        circle(p.x,p.y,p.r,p.color,10);
+      });
+      const glow = S.traits.thickMembrane ? 18 : 12;
+      glowCircle(cell.x, cell.y, cell.r, hidden?'#7a8a99':'#3da9ff', glow);
+      circle(cell.x, cell.y, cell.r, hidden?'#5a6a79':'#3da9ff', glow);
+      circle(cell.x, cell.y, cell.r*0.6, 'rgba(90,255,154,.55)');
+      circle(cell.x, cell.y, 4, '#c06dff', 6);
+      if(o2Started){
+        ctx.fillStyle=`rgba(255,90,90,${0.15+o2*0.35})`;
+        ctx.fillRect(0,0,W,H);
+        ctx.fillStyle='#ff9a9a'; ctx.font='bold 11px sans-serif'; ctx.textAlign='center';
+        ctx.fillText('O₂: '+Math.floor(o2*100)+'%', W/2, 74);
+        ctx.textAlign='left';
+      }
+    }
+  };
+  function finishStage2(){
+    S.running = false; S.stage = 2;
+    sliderBox.classList.remove('active');
+    clearActionButtons();
+    showDecision(DECISIONS[2], ()=> showDecision(DECISIONS[3], ()=> startStage2b()));
+  }
+}
+function startStage2Intro(){
+  showStageIntro('СТАДИЯ 2: LUCA',
+    'Последний общий предок. ДНК копится только когда ты сыт (энергия > 40%). ДНК даёт регенерацию. Переживи кислородную катастрофу!',
+    ()=> startStage2());
+}
+function startStage2(){
+  S.stage = 2;
+  S.energy = Math.max(60, S.energy);
+  S.stab = S.maxStab;
+  S.matter = Math.max(S.matter, 10);
+  S.info = Math.max(S.info, 5);
+  S.st = Stage2();
+  hideAllScreens();
+  S.running = true; S.paused = false; S.elapsed = 0;
+}
+function startStage2b(){
+  showStageIntro('СТАДИЯ 2: ПРОДОЛЖЕНИЕ',
+    S.traits.nutrition==='autotroph'
+      ? 'Автотроф: фотосинтез даёт энергию, но только на свету. В тени — голод.'
+      : S.traits.nutrition==='mixotroph'
+      ? 'Миксотроф: и фотосинтез, и охота, но оба слабее.'
+      : 'Гетеротроф: энергия только из еды. Охоться, но будь осторожен.',
+    ()=> startStage3Intro());
+}
+
+// ============ СТАДИЯ 3: ЦИАНОБАКТЕРИЯ ============
+// Логика: фотосинтез слабее (0.5), работает только на свету.
+// 3 типа ресурсов. Энергия тратится на движение.
+function Stage3(){
+  const cells = [];
+  const count = 7 + (S.traits.adhesion?3:0);
+  for(let i=0;i<count;i++){
+    const a = (i/count)*Math.PI*2;
+    cells.push({ x:W/2+Math.cos(a)*30, y:H*0.42+Math.sin(a)*30, r:7,
+      type: i===0?'hunter':'feeder', color: i===0?'#ff9a3d':'#5aff9a', pulse: Math.random()*6 });
+  }
+  const leader = { x:W/2, y:H*0.42 };
+  const resources = [], enemies = [];
+  let spawnT = 0, enemyT = 4.0, done = false;
+  // зона света (верхняя треть экрана)
+  const lightZone = { y1: 60, y2: H*0.4 };
+  function spawnResource(){
+    // 3 типа: энергия, ДНК, материя
+    const r = Math.random();
+    let type, color;
+    if(r < 0.4){ type='energy'; color='#ffd34d'; }
+    else if(r < 0.7){ type='info'; color='#c06dff'; }
+    else { type='matter'; color='#5aff9a'; }
+    resources.push({ x:25+Math.random()*(W-50), y:70+Math.random()*(H-140), r:5, type,
+      color, pulse: Math.random()*6, life:1 });
+  }
+  function spawnEnemy(){
+    const edge = Math.floor(Math.random()*4);
+    let x,y;
+    if(edge===0){ x=Math.random()*W; y=-15; } else if(edge===1){ x=W+15; y=Math.random()*H; }
+    else if(edge===2){ x=Math.random()*W; y=H+15; } else { x=-15; y=Math.random()*H; }
+    enemies.push({ x,y,r:9, color:'#ff5a5a', pulse: Math.random()*6, speed: 28+Math.random()*15 });
+  }
+  return {
+    update(dt){
+      if(done) return;
+      const speed = 130 * (S.traits.flagellum?1.3:1) * (S.traits.mitochondria?1.2:1) * S.traits.speed;
+      moveEntity(leader, dt, speed, { minX:18, maxX:W-18, minY:70, maxY:H-20 });
+      cells.forEach((c,i)=>{
+        if(i===0){ c.x=leader.x; c.y=leader.y; c.pulse+=dt*4; return; }
+        const a = (i/cells.length)*Math.PI*2 + S.elapsed*0.5;
+        const rad = 26 + Math.sin(S.elapsed*2+i)*4;
+        const tx = leader.x + Math.cos(a)*rad;
+        const ty = leader.y + Math.sin(a)*rad;
+        c.x += (tx-c.x)*Math.min(1, dt*5);
+        c.y += (ty-c.y)*Math.min(1, dt*5);
+        c.pulse += dt*4;
+      });
+      // расход энергии (зависит от движения)
+      const mv = getMoveVector();
+      const moveCost = mv ? 4.5 : 2.5;
+      S.energy = Math.max(0, S.energy - dt*moveCost);
+      // фотосинтез только на свету и слабее
+      S.inLight = leader.y > lightZone.y1 && leader.y < lightZone.y2;
+      if(S.traits.photosynthesis && S.inLight){
+        S.energy = Math.min(S.maxEnergy, S.energy + dt*0.5);
+      }
+      S.info += dt*0.5;
+      S.stab = Math.max(0, S.stab - dt*0.3);
+      if(S.energy<=0 || S.stab<=0){ death(); return; }
+      spawnT -= dt;
+      if(spawnT<=0){ spawnT=0.8; if(resources.length<18) spawnResource(); }
+      enemyT -= dt;
+      if(enemyT<=0){ enemyT=4.0; if(enemies.length<4) spawnEnemy(); }
+      for(let i=resources.length-1;i>=0;i--){
+        const r = resources[i];
+        r.pulse += dt*4; r.life -= dt*0.06;
+        if(r.life<=0){ resources.splice(i,1); continue; }
+        for(const c of cells){
+          if(Math.hypot(c.x-r.x,c.y-r.y) < c.r+r.r+3){
+            if(r.type==='energy') S.energy = Math.min(S.maxEnergy, S.energy+10);
+            else if(r.type==='info') S.info += 6;
+            else S.matter += 5;
+            resources.splice(i,1); break;
+          }
+        }
+      }
+      for(let i=enemies.length-1;i>=0;i--){
+        const e = enemies[i];
+        e.pulse += dt*4;
+        let nearest = null, nd = 1e9;
+        for(const c of cells){ const dd=Math.hypot(c.x-e.x,c.y-e.y); if(dd<nd){ nd=dd; nearest=c; } }
+        if(nearest){
+          const dx = nearest.x-e.x, dy = nearest.y-e.y;
+          const d = Math.hypot(dx,dy)||1;
+          e.x += dx/d * e.speed*dt;
+          e.y += dy/d * e.speed*dt;
+          if(d < e.r+nearest.r){
+            if(nearest.type==='hunter' || S.traits.nerveImpulse){ enemies.splice(i,1); S.info += 3; }
+            else { S.stab = Math.max(0, S.stab-12*(1-S.traits.armor*0.5)); enemies.splice(i,1); }
+          }
+        }
+      }
+      setStageProgress(S.elapsed/50);
+      setStatusHint(S.traits.photosynthesis
+        ? (S.inLight ? 'На свету → фотосинтез +0.5/сек' : 'В тени → фотосинтез не работает')
+        : 'Двигайся к ресурсам — энергия тратится');
+      if(S.elapsed > 50 && !done){ done = true; finishStage3(); }
+    },
+    draw(){
+      // зона света
+      const lg = ctx.createLinearGradient(0, lightZone.y1, 0, lightZone.y2);
+      lg.addColorStop(0,'rgba(255,211,77,.08)');
+      lg.addColorStop(1,'rgba(255,211,77,0)');
+      ctx.fillStyle = lg;
+      ctx.fillRect(0, lightZone.y1, W, lightZone.y2-lightZone.y1);
+      resources.forEach(r=>{
+        ctx.globalAlpha = 0.6+Math.sin(r.pulse)*0.25;
+        glowCircle(r.x,r.y,r.r,r.color,8);
+        circle(r.x,r.y,r.r,r.color,6);
+      });
+      ctx.globalAlpha = 1;
+      enemies.forEach(e=>{
+        glowCircle(e.x,e.y,e.r,'#ff5a5a',12);
+        circle(e.x,e.y,e.r,'#ff5a5a',10);
+      });
+      cells.forEach((c,i)=>{
+        glowCircle(c.x,c.y,c.r,c.color,8);
+        circle(c.x,c.y,c.r,c.color,6);
+        circle(c.x,c.y,c.r*0.5,'rgba(255,255,255,.4)');
+        if(i===0){
+          ctx.strokeStyle='#ffd34d'; ctx.lineWidth=2;
+          ctx.beginPath(); ctx.arc(c.x,c.y,c.r+4,0,Math.PI*2); ctx.stroke();
+        }
+      });
+    }
+  };
+  function finishStage3(){
+    S.running = false; S.stage = 3;
+    clearActionButtons();
+    showDecision(DECISIONS[4], ()=> showDecision(DECISIONS[5], ()=> startStage4Intro()));
+  }
+}
+function startStage3Intro(){
+  showStageIntro('СТАДИЯ 3: ЦИАНОБАКТЕРИЯ',
+    'Колония цианобактерий. 3 типа ресурсов. Фотосинтез слабее (0.5/сек) и работает только на свету (верхняя зона). Движение тратит энергию.',
+    ()=> startStage3());
+}
+function startStage3(){
+  S.stage = 3;
+  S.energy = Math.max(70, S.energy);
+  S.stab = S.maxStab;
+  S.st = Stage3();
+  hideAllScreens();
+  S.running = true; S.paused = false; S.elapsed = 0;
+}
+
+// ============ СТАДИЯ 4: КОЛОНИЯ ============
+let bodyGridState = null;
+function openBodyEditor(onDone){
+  const GRID = 5;
+  const editor = $('bodyEditor');
+  const gridEl = $('bodyGrid');
+  gridEl.style.gridTemplateColumns = `repeat(${GRID}, 1fr)`;
+  gridEl.innerHTML = '';
+  bodyGridState = Array.from({length:GRID},()=>Array(GRID).fill(null));
+  let selected = 'epi';
+  const countEl = $('beCount');
+  const infoEl = $('beInfo');
+  const doneBtn = $('beDone');
+  const paletteItems = [
+    {id:'epi', label:'ЭПИТЕЛИЙ'},
+    {id:'dig', label:'ПИЩЕВ.'},
+    {id:'mus', label:'МЫШЦЫ'},
+    {id:'ner', label:'НЕРВЫ'},
+    {id:'stem', label:'СТВОЛ.'},
+  ];
+  const pal = $('palette'); pal.innerHTML = '';
+  paletteItems.forEach(p=>{
+    const b = document.createElement('div');
+    b.className = 'pal-item' + (p.id===selected?' sel':'');
+    b.textContent = p.label;
+    b.onclick = ()=>{
+      selected = p.id;
+      pal.querySelectorAll('.pal-item').forEach(x=>x.classList.remove('sel'));
+      b.classList.add('sel');
+    };
+    pal.appendChild(b);
+  });
+  function render(){
+    gridEl.innerHTML = '';
+    let filled=0, epi=0, dig=0, mus=0, ner=0;
+    for(let r=0;r<GRID;r++){
+      for(let c=0;c<GRID;c++){
+        const cell = document.createElement('div');
+        const val = bodyGridState[r][c];
+        cell.className = 'cell';
+        if(val) cell.classList.add('filled', val);
+        cell.onpointerdown = (e)=>{
+          e.preventDefault();
+          if(bodyGridState[r][c] === selected) bodyGridState[r][c] = null;
+          else bodyGridState[r][c] = selected;
+          render();
+        };
+        gridEl.appendChild(cell);
+        if(val){ filled++; if(val==='epi')epi++; if(val==='dig')dig++; if(val==='mus')mus++; if(val==='ner')ner++; }
+      }
+    }
+    countEl.textContent = `${filled}/12`;
+    if(filled > 12){
+      infoEl.textContent = '⚠️ Слишком много клеток — не хватит энергии!';
+      infoEl.style.color='#ff9a9a';
+      doneBtn.disabled = true;
+    } else if(filled < 4){
+      infoEl.textContent = `Нужно минимум 4 клетки (сейчас ${filled})`;
+      infoEl.style.color='#ffd34d';
+      doneBtn.disabled = true;
+    } else if(epi < 1){
+      infoEl.textContent = 'Нужен хотя бы 1 эпителий (защита)';
+      infoEl.style.color='#ffd34d';
+      doneBtn.disabled = false;
+    } else if(dig < 1){
+      infoEl.textContent = 'Нужен хотя бы 1 пищеваритель';
+      infoEl.style.color='#ffd34d';
+      doneBtn.disabled = false;
+    } else {
+      infoEl.textContent = `Эпит:${epi} Пищ:${dig} Мыш:${mus} Нерв:${ner}`;
+      infoEl.style.color='';
+      doneBtn.disabled = false;
+    }
+  }
+  $('beClear').onclick = ()=>{
+    bodyGridState = Array.from({length:GRID},()=>Array(GRID).fill(null));
+    render();
+  };
+  doneBtn.onclick = ()=>{
+    let filled=0, epi=0, dig=0, mus=0, ner=0;
+    for(let r=0;r<GRID;r++)for(let c=0;c<GRID;c++){
+      const v = bodyGridState[r][c];
+      if(v){ filled++; if(v==='epi')epi++; if(v==='dig')dig++; if(v==='mus')mus++; if(v==='ner')ner++; }
+    }
+    if(filled < 4){ toast('Минимум 4 клетки'); return; }
+    if(epi < 1){ toast('Нужен эпителий'); return; }
+    if(dig < 1){ toast('Нужен пищеваритель'); return; }
+    if(filled > 12){ toast('Слишком много клеток'); return; }
+    S.st._body = {filled, epi, dig, mus, ner};
+    editor.classList.remove('active');
+    if(onDone) onDone(S.st._body);
+  };
+  render();
+  editor.classList.add('active');
+}
+
+function Stage4(){
+  const body = {filled:0, epi:0, dig:0, mus:0, ner:0};
+  let phase = 'edit', survivalTime = 0;
+  let food = [], threats = [];
+  let player = {x:W/2, y:H*0.42, r:16};
+  let spawnT = 0, threatT = 2, editorDone = false, done = false;
+  function startSurvival(){
+    phase = 'survive';
+    player = {x:W/2, y:H*0.42, r: 12+body.filled*0.8};
+    survivalTime = 0; food = []; threats = [];
+    spawnT = 0; threatT = 2;
+    toast('Выживи 30 секунд!', 1600);
+  }
+  function spawnFood(){
+    // 2 типа еды: обычная (зелёная) и питательная (синяя, реже)
+    const isRich = Math.random() < 0.3;
+    food.push({ x:25+Math.random()*(W-50), y:70+Math.random()*(H-140), r: isRich?7:5,
+      color: isRich?'#3da9ff':'#5aff9a', pulse: Math.random()*6, life:1, rich: isRich });
+  }
+  function spawnThreat(){
+    const edge = Math.floor(Math.random()*4);
+    let x,y;
+    if(edge===0){ x=Math.random()*W; y=-15; } else if(edge===1){ x=W+15; y=Math.random()*H; }
+    else if(edge===2){ x=Math.random()*W; y=H+15; } else { x=-15; y=Math.random()*H; }
+    threats.push({ x,y,r:11, color:'#ff5a5a', pulse: Math.random()*6, speed: 25+Math.random()*15 });
+  }
+  return {
+    update(dt){
+      if(done) return;
+      if(!editorDone && phase==='edit'){
+        editorDone = true;
+        openBodyEditor((b)=>{
+          Object.assign(body, b);
+          startSurvival();
+        });
+        return;
+      }
+      if(phase !== 'survive') return;
+      survivalTime += dt;
+      const speed = (100 + body.mus*8) * (S.traits.flagellum?1.25:1) * S.traits.speed;
+      moveEntity(player, dt, speed, { minX:18, maxX:W-18, minY:70, maxY:H-20 });
+      // расход энергии выше (4/сек), пищеварители дают 0.3/сек каждый
+      S.energy = Math.max(0, S.energy - dt*4);
+      S.stab = Math.max(0, S.stab - dt*0.5);
+      if(body.dig > 0) S.energy = Math.min(S.maxEnergy, S.energy + dt*body.dig*0.3);
+      if(S.energy<=0 || S.stab<=0){ death(); return; }
+      spawnT -= dt;
+      if(spawnT<=0){ spawnT=0.7; if(food.length<16) spawnFood(); }
+      threatT -= dt;
+      if(threatT<=0){ threatT=1.9; if(threats.length<6) spawnThreat(); }
+      for(let i=food.length-1;i>=0;i--){
+        const f = food[i];
+        f.pulse += dt*4; f.life -= dt*0.07;
+        if(f.life<=0){ food.splice(i,1); continue; }
+        if(Math.hypot(player.x-f.x,player.y-f.y) < player.r+f.r+3){
+          S.energy = Math.min(S.maxEnergy, S.energy + (f.rich?18:10));
+          if(f.rich) S.info += 3;
+          food.splice(i,1);
+        }
+      }
+      for(let i=threats.length-1;i>=0;i--){
+        const t = threats[i];
+        t.pulse += dt*4;
+        const dx = player.x-t.x, dy = player.y-t.y;
+        const d = Math.hypot(dx,dy)||1;
+        t.x += dx/d * t.speed*dt;
+        t.y += dy/d * t.speed*dt;
+        if(d < player.r+t.r){
+          const dodge = Math.random() < (body.ner*0.12 + S.traits.dodge);
+          if(!dodge) S.stab = Math.max(0, S.stab-15*(1-S.traits.armor*0.5));
+          threats.splice(i,1);
+        }
+      }
+      setStageProgress(survivalTime/30);
+      setStatusHint(S.energy < S.maxEnergy*0.3 ? 'Энергия падает! Ешь!' : 'Собирай еду — она тратится быстрее');
+      if(survivalTime > 30 && !done){ done = true; finishStage4(); }
+    },
+    draw(){
+      if(phase==='survive'){
+        food.forEach(f=>{
+          ctx.globalAlpha = 0.6+Math.sin(f.pulse)*0.25;
+          glowCircle(f.x,f.y,f.r,f.color,8);
+          circle(f.x,f.y,f.r,f.color,6);
+        });
+        ctx.globalAlpha = 1;
+        threats.forEach(t=>{
+          glowCircle(t.x,t.y,t.r,'#ff5a5a',12);
+          circle(t.x,t.y,t.r,'#ff5a5a',10);
+        });
+        drawCreature(player.x, player.y, 1, S.traits);
+      }
+    }
+  };
+  function finishStage4(){
+    S.running = false; S.stage = 4;
+    S.st._body = body;
+    clearActionButtons();
+    showDecision(DECISIONS[6], ()=> showDecision(DECISIONS[7], ()=> startStage5Intro()));
+  }
+}
+function startStage4Intro(){
+  showStageIntro('СТАДИЯ 4: КОЛОНИЯ',
+    'Собери тело: эпителий, пищеварители, мышцы, нервы. Потом выживи 30 сек. Расход энергии выше (4/сек), пищеварители дают 0.3/сек. Без еды не выжить!',
+    ()=> startStage4());
+}
+function startStage4(){
+  S.stage = 4;
+  S.energy = Math.max(80, S.energy);
+  S.stab = S.maxStab;
+  S.st = Stage4();
+  hideAllScreens();
+  S.running = true; S.paused = false; S.elapsed = 0;
+}
+
+// ============ СТАДИЯ 5: ПИКАЙЯ ============
+// Логика: расход энергии 3.5/сек. Фотосинтез 0.5/сек.
+// 2 типа еды: обычная и жирная.
+function Stage5(){
+  const player = { x:W/2, y:H*0.42, r:18,
+    speed: 130 * (S.traits.flagellum?1.3:1) * S.traits.speed };
+  let food = [], predators = [];
+  let spawnT = 0, predT = 2;
+  let eventTriggered = false, eventType = Math.random()<0.5?'cold':'predator';
+  let survivalTime = 0, done = false;
+  let coldTimer = 0;
+  let extraSpawnTimer = 0, extraSpawnCount = 0;
+  let dashCd = 0, senseCd = 0, senseActive = 0;
+  setupActionButtons([
+    { label:'РЫВОК', onClick:(btn)=>{
+      if(dashCd<=0 && S.energy>10){
+        dashCd = 2.5; S.energy -= 10;
+        btn.classList.add('cooling');
+        const mv = getMoveVector();
+        if(mv){ player.x += mv.x*90; player.y += mv.y*90; }
+        player.x = Math.max(18, Math.min(W-18, player.x));
+        player.y = Math.max(70, Math.min(H-20, player.y));
+        toast('Рывок!');
+      }
+    }},
+    { label:'ЧУВСТВА', alt:true, onClick:(btn)=>{
+      if(senseCd<=0 && S.energy>5){ senseCd=6; S.energy-=5; senseActive=2; btn.classList.add('cooling'); }
+    }},
+  ]);
+  function spawnFood(){
+    // 2 типа: обычная и жирная (реже)
+    const isFat = Math.random() < 0.25;
+    food.push({ x:25+Math.random()*(W-50), y:70+Math.random()*(H-140), r: isFat?8:6,
+      color: isFat?'#ff9a3d':'#5aff9a', pulse: Math.random()*6, life:1, fat: isFat });
+  }
+  function spawnPredator(){
+    const edge = Math.floor(Math.random()*4);
+    let x,y;
+    if(edge===0){ x=Math.random()*W; y=-15; } else if(edge===1){ x=W+15; y=Math.random()*H; }
+    else if(edge===2){ x=Math.random()*W; y=H+15; } else { x=-15; y=Math.random()*H; }
+    predators.push({ x,y,r:13, color:'#ff5a5a', pulse: Math.random()*6, speed: 30+Math.random()*20 });
+  }
+  return {
+    update(dt){
+      if(done) return;
+      survivalTime += dt;
+      dashCd -= dt; senseCd -= dt; senseActive -= dt;
+      if(dashCd<=0 && actionButtonsCache[0]?.el) actionButtonsCache[0].el.classList.remove('cooling');
+      if(senseCd<=0 && actionButtonsCache[1]?.el) actionButtonsCache[1].el.classList.remove('cooling');
+      moveEntity(player, dt, player.speed, { minX:18, maxX:W-18, minY:70, maxY:H-20 });
+      // расход энергии 3.5/сек
+      S.energy = Math.max(0, S.energy - dt*3.5);
+      // фотосинтез 0.5/сек
+      if(S.traits.photosynthesis) S.energy = Math.min(S.maxEnergy, S.energy + dt*0.5);
+      S.stab = Math.max(0, S.stab - dt*0.2);
+      if(coldTimer > 0){
+        coldTimer -= dt;
+        S.stab = Math.max(0, S.stab - dt*0.5);
+      }
+      if(S.energy<=0 || S.stab<=0){ death(); return; }
+      spawnT -= dt;
+      if(spawnT<=0){ spawnT=0.8; if(food.length<14) spawnFood(); }
+      predT -= dt;
+      if(predT<=0){ predT=2.4; if(predators.length<5) spawnPredator(); }
+      if(extraSpawnCount > 0){
+        extraSpawnTimer -= dt;
+        if(extraSpawnTimer <= 0){
+          spawnPredator();
+          extraSpawnCount--;
+          extraSpawnTimer = 1.5;
+        }
+      }
+      for(let i=food.length-1;i>=0;i--){
+        const f = food[i];
+        f.pulse += dt*4; f.life -= dt*0.06;
+        if(f.life<=0){ food.splice(i,1); continue; }
+        if(Math.hypot(player.x-f.x,player.y-f.y) < player.r+f.r+3){
+          S.energy = Math.min(S.maxEnergy, S.energy + (f.fat?20:12));
+          food.splice(i,1);
+        }
+      }
+      for(let i=predators.length-1;i>=0;i--){
+        const p = predators[i];
+        p.pulse += dt*4;
+        const dx = player.x-p.x, dy = player.y-p.y;
+        const d = Math.hypot(dx,dy)||1;
+        p.x += dx/d * p.speed*dt;
+        p.y += dy/d * p.speed*dt;
+        if(d < player.r+p.r){
+          if(S.traits.predation && Math.random()<0.5){
+            predators.splice(i,1); S.energy = Math.min(S.maxEnergy, S.energy+8);
+          } else {
+            S.stab = Math.max(0, S.stab-12*(1-S.traits.armor*0.5)); predators.splice(i,1);
+          }
+        }
+      }
+      if(!eventTriggered && survivalTime > 25){
+        eventTriggered = true;
+        banner(eventType==='cold'?'ПОХОЛОДАНИЕ!':'СВЕРХХИЩНИК!');
+        if(eventType==='predator'){ extraSpawnCount = 2; extraSpawnTimer = 0.5; }
+        else { coldTimer = 10; S.stab = Math.max(0, S.stab-10); toast('Холод! Ищи тепло', 2000); }
+      }
+      setStageProgress(survivalTime/40);
+      setStatusHint(S.energy < S.maxEnergy*0.3 ? 'Энергия падает! Ешь жирную (оранжевую) еду!' : 'Собирай еду — расход 3.5/сек');
+      if(survivalTime > 40 && !done){ done = true; finishStage5(); }
+    },
+    draw(){
+      food.forEach(f=>{
+        ctx.globalAlpha = 0.6+Math.sin(f.pulse)*0.25;
+        glowCircle(f.x,f.y,f.r,f.color,8);
+        circle(f.x,f.y,f.r,f.color,6);
+      });
+      ctx.globalAlpha = 1;
+      predators.forEach(p=>{
+        glowCircle(p.x,p.y,p.r,'#ff5a5a',12);
+        circle(p.x,p.y,p.r,'#ff5a5a',10);
+        circle(p.x-4,p.y-2,2,'#fff'); circle(p.x+4,p.y-2,2,'#fff');
+      });
+      drawCreature(player.x, player.y, 1.2, S.traits);
+      if(senseActive > 0){
+        ctx.strokeStyle='rgba(255,211,77,.6)'; ctx.lineWidth=1.5;
+        ctx.beginPath(); ctx.arc(player.x,player.y,90,0,Math.PI*2); ctx.stroke();
+      }
+    }
+  };
+  function finishStage5(){
+    S.running = false; S.stage = 5;
+    clearActionButtons();
+    showDecision(DECISIONS[8], ()=> showDecision(DECISIONS[9], ()=> showDecision(DECISIONS[10], ()=> winGame())));
+  }
+}
+function startStage5Intro(){
+  showStageIntro('СТАДИЯ 5: ПИКАЙЯ',
+    'Одно из первых хордовых. Расход энергии 3.5/сек. 2 типа еды: обычная (зелёная) и жирная (оранжевая, реже, но сытнее). Доживи до финала!',
+    ()=> startStage5());
+}
+function startStage5(){
+  S.stage = 5;
+  S.energy = S.maxEnergy; S.stab = S.maxStab;
+  S.st = Stage5();
+  hideAllScreens();
+  S.running = true; S.paused = false; S.elapsed = 0;
+}
+
+// ============ ФИНАЛ ============
+function drawEvolutionTree(){
+  const box = $('evolutionTree');
+  box.innerHTML = '';
+  const cw = box.clientWidth || 300;
+  const ch = box.clientHeight || 140;
+  const canvas = document.createElement('canvas');
+  canvas.width = cw * 2;
+  canvas.height = ch * 2;
+  canvas.style.width = cw+'px';
+  canvas.style.height = ch+'px';
+  box.appendChild(canvas);
+  const c = canvas.getContext('2d');
+  c.scale(2,2);
+  const w = cw, h = ch;
+  c.strokeStyle='rgba(90,255,154,.5)'; c.lineWidth=1.5;
+  const cx = w/2;
+  c.beginPath(); c.moveTo(cx, h*0.9); c.lineTo(cx, h*0.5); c.stroke();
+  const branches = [
+    {x:w*0.15, y:h*0.22, label:'Губки'},
+    {x:w*0.38, y:h*0.14, label:'Черви'},
+    {x:w*0.62, y:h*0.14, label:'Членист.'},
+    {x:w*0.85, y:h*0.22, label:'Хордовые'},
+  ];
+  branches.forEach(b=>{
+    c.strokeStyle='rgba(61,169,255,.4)'; c.lineWidth=1;
+    c.beginPath(); c.moveTo(cx, h*0.5); c.quadraticCurveTo(b.x, h*0.4, b.x, b.y); c.stroke();
+    c.fillStyle='rgba(255,255,255,.4)'; c.font='9px sans-serif'; c.textAlign='center';
+    c.fillText(b.label, b.x, b.y-3);
+  });
+  const idx = BASES.indexOf(S.traits.body);
+  if(idx >= 0){
+    const b = branches[idx] || branches[0];
+    c.fillStyle='#5aff9a'; c.font='bold 9px sans-serif';
+    c.fillText('ТЫ', b.x, b.y+10);
+    c.beginPath(); c.arc(b.x, b.y, 5, 0, Math.PI*2); c.fill();
+  }
+  c.fillStyle='#3da9ff'; c.font='bold 10px sans-serif'; c.textAlign='center';
+  c.fillText('РНК', cx, h*0.95);
+}
+
+function winGame(){
+  S.running = false;
+  const real = findRealCreature();
+  $('winName').textContent = real ? `${real.name} · ${real.latin}` : generateLatinName();
+  $('winStats').innerHTML = `
+    <div class="stat-line">Развилок: ${S.decisions.length}</div>
+    <div class="stat-line">Время: ${Math.floor(S.elapsed)} с</div>
+    <div class="stat-line">Тело: ${S.traits.body||'—'} · Скелет: ${S.traits.skeleton} · Конечности: ${S.traits.limbs}</div>
+    <div class="stat-line">Глаза: ${S.traits.eyes} · Среда: ${S.traits.env} · Размер: ${S.traits.size}</div>
+  `;
+  showScreen('winScreen');
+  setTimeout(drawEvolutionTree, 60);
+  setStageProgress(null);
+  setStatusHint('');
+  $('sliders').classList.remove('active');
+  $('bodyEditor').classList.remove('active');
+  clearActionButtons();
+}
+function death(){
+  if(!S.running) return;
+  S.running = false; S.deaths++;
+  $('deathText').textContent = S.stage <= 2
+    ? 'Твой организм не справился со средой первичного бульона.'
+    : 'Твоё существо погибло в древнем мире.';
+  $('deathStats').innerHTML = `
+    <div class="stat-line">Стадия: ${S.stage}</div>
+    <div class="stat-line">Время: ${Math.floor(S.elapsed)} с</div>
+    <div class="stat-line">Развилок: ${S.decisions.length}</div>
+  `;
+  showScreen('deathScreen');
+  setStageProgress(null);
+  setStatusHint('');
+  $('sliders').classList.remove('active');
+  $('bodyEditor').classList.remove('active');
+  clearActionButtons();
+}
+function resetGame(){
+  S.stage = 0; S.running = false; S.paused = false;
+  S.energy = 100; S.matter = 0; S.info = 0; S.stab = 100;
+  S.maxEnergy = 100; S.maxStab = 100;
+  S.decisions = []; S.elapsed = 0; S.st = null;
+  S.branch = null; S.inLight = true; S.o2 = 0;
+  decisionIndex = 0;
+  resetTraits();
+  $('sliders').classList.remove('active');
+  $('bodyEditor').classList.remove('active');
+  setStageProgress(null);
+  setStatusHint('');
+  hideAllScreens();
+  clearActionButtons();
+  control.joy.active = false;
+  control.joy.dx = 0; control.joy.dy = 0; control.joy.mag = 0;
+  $('joyKnob').style.transform = 'translate(0,0)';
+  $('joystick').classList.remove('active-touch');
+}
+
+// ============ ВЕТКИ ============
+function showBranchScreen(){ showScreen('branchScreen'); setStageProgress(null); setStatusHint(''); clearActionButtons(); }
+$('branchEarth').onclick = ()=>{ S.branch='earth'; S.traits.branch='earth'; startFinalStage(); };
+$('branchHuman').onclick = ()=>{ S.branch='human'; S.traits.branch='human'; S.traits.human=true; startFinalStage(); };
+$('branchSpace').onclick = ()=>{ S.branch='space'; S.traits.branch='space'; startFinalStage(); };
+
+// ============ 6-я СТАДИЯ: ЗЕМЛЯ ============
+function FinalEarth(){
+  const player = { x:W/2, y:H*0.42, r:18,
+    speed: 130 * (S.traits.flagellum?1.3:1) * S.traits.speed };
+  let food = [], predators = [];
+  let spawnT = 0, predT = 2;
+  let survivalTime = 0, done = false;
+  setupActionButtons([
+    { label:'РЫВОК', onClick:(btn)=>{
+      const mv = getMoveVector();
+      if(mv){ player.x += mv.x*90; player.y += mv.y*90; }
+      player.x = Math.max(18, Math.min(W-18, player.x));
+      player.y = Math.max(70, Math.min(H-20, player.y));
+    }},
+  ]);
+  function spawnFood(){
+    const isFat = Math.random() < 0.25;
+    food.push({ x:25+Math.random()*(W-50), y:70+Math.random()*(H-140), r: isFat?8:6,
+      color: isFat?'#ff9a3d':'#5aff9a', pulse: Math.random()*6, life:1, fat: isFat });
+  }
+  function spawnPredator(){
+    const edge = Math.floor(Math.random()*4);
+    let x,y;
+    if(edge===0){ x=Math.random()*W; y=-15; } else if(edge===1){ x=W+15; y=Math.random()*H; }
+    else if(edge===2){ x=Math.random()*W; y=H+15; } else { x=-15; y=Math.random()*H; }
+    predators.push({ x,y,r:14, color:'#ff5a5a', pulse: Math.random()*6, speed: 28+Math.random()*18 });
+  }
+  return {
+    update(dt){
+      if(done) return;
+      survivalTime += dt;
+      moveEntity(player, dt, player.speed, { minX:18, maxX:W-18, minY:70, maxY:H-20 });
+      S.energy = Math.max(0, S.energy - dt*3);
+      if(S.traits.photosynthesis) S.energy = Math.min(S.maxEnergy, S.energy + dt*0.5);
+      if(S.energy<=0 || S.stab<=0){ death(); return; }
+      spawnT -= dt;
+      if(spawnT<=0){ spawnT=0.8; if(food.length<14) spawnFood(); }
+      predT -= dt;
+      if(predT<=0){ predT=2.4; if(predators.length<5) spawnPredator(); }
+      for(let i=food.length-1;i>=0;i--){
+        const f = food[i];
+        f.pulse += dt*4; f.life -= dt*0.06;
+        if(f.life<=0){ food.splice(i,1); continue; }
+        if(Math.hypot(player.x-f.x,player.y-f.y) < player.r+f.r+3){
+          S.energy = Math.min(S.maxEnergy, S.energy + (f.fat?18:10));
+          food.splice(i,1);
+        }
+      }
+      for(let i=predators.length-1;i>=0;i--){
+        const p = predators[i];
+        p.pulse += dt*4;
+        const dx = player.x-p.x, dy = player.y-p.y;
+        const d = Math.hypot(dx,dy)||1;
+        p.x += dx/d * p.speed*dt;
+        p.y += dy/d * p.speed*dt;
+        if(d < player.r+p.r){
+          S.stab = Math.max(0, S.stab-12*(1-S.traits.armor*0.5)); predators.splice(i,1);
+        }
+      }
+      setStageProgress(survivalTime/35);
+      setStatusHint('Земной путь: собирай еду, избегай хищников');
+      if(survivalTime > 35 && !done){ done = true; finishFinal(); }
+    },
+    draw(){
+      food.forEach(f=>{
+        ctx.globalAlpha = 0.6+Math.sin(f.pulse)*0.25;
+        glowCircle(f.x,f.y,f.r,f.color,8);
+        circle(f.x,f.y,f.r,f.color,6);
+      });
+      ctx.globalAlpha = 1;
+      predators.forEach(p=>{
+        glowCircle(p.x,p.y,p.r,'#ff5a5a',12);
+        circle(p.x,p.y,p.r,'#ff5a5a',10);
+      });
+      drawCreature(player.x, player.y, 1.3, S.traits);
+    }
+  };
+  function finishFinal(){ S.running = false; S.stage = 6; clearActionButtons(); showFinalScreen(); }
+}
+
+// ============ 6-я СТАДИЯ: ЧЕЛОВЕК ============
+function FinalHuman(){
+  let progress = 0, done = false;
+  let points = [];
+  let spawnT = 0;
+  let timeLeft = 30;
+  const player = { x:W/2, y:H*0.42 };
+  setupActionButtons([]);
+  function spawnPoint(){
+    points.push({ x:30+Math.random()*(W-60), y:70+Math.random()*(H-140),
+      r:14, pulse: Math.random()*6, life:1, type: Math.random()<0.5?'mind':'social' });
+  }
+  return {
+    update(dt){
+      if(done) return;
+      timeLeft -= dt;
+      spawnT -= dt;
+      if(spawnT<=0){ spawnT=1.0; if(points.length<8) spawnPoint(); }
+      const mv = getMoveVector();
+      if(mv){
+        player.x += mv.x * 120 * dt;
+        player.y += mv.y * 120 * dt;
+        player.x = Math.max(18, Math.min(W-18, player.x));
+        player.y = Math.max(70, Math.min(H-20, player.y));
+      }
+      for(let i=points.length-1;i>=0;i--){
+        const p = points[i];
+        p.pulse += dt*4; p.life -= dt*0.05;
+        if(p.life<=0){ points.splice(i,1); continue; }
+        if(Math.hypot(player.x-p.x, player.y-p.y) < 30){
+          progress += 0.04;
+          S.energy = Math.min(S.maxEnergy, S.energy+5);
+          points.splice(i,1);
+        }
+      }
+      setStageProgress(progress);
+      setStatusHint('Собирай разум (жёлтые) и социум (зелёные)');
+      if(progress >= 1 && !done){ done = true; finishFinal(); }
+      if(timeLeft <= 0 && !done){ done = true; finishFinal(); }
+    },
+    draw(){
+      points.forEach(p=>{
+        ctx.globalAlpha = 0.7+Math.sin(p.pulse)*0.25;
+        glowCircle(p.x,p.y,p.r, p.type==='mind'?'#ffd34d':'#5aff9a', 12);
+        circle(p.x,p.y,p.r, p.type==='mind'?'#ffd34d':'#5aff9a', 10);
+      });
+      ctx.globalAlpha = 1;
+      drawCircleC(ctx, player.x, player.y-8, 7, '#ffd34d', 10);
+      ctx.strokeStyle = '#ffd34d'; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(player.x, player.y); ctx.lineTo(player.x, player.y+14); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(player.x-8, player.y+6); ctx.lineTo(player.x+8, player.y+6); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(player.x, player.y+14); ctx.lineTo(player.x-6, player.y+24); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(player.x, player.y+14); ctx.lineTo(player.x+6, player.y+24); ctx.stroke();
+    }
+  };
+  function finishFinal(){ S.running = false; S.stage = 6; clearActionButtons(); showFinalScreen(); }
+}
+
+// ============ 6-я СТАДИЯ: КОСМОС ============
+function FinalSpace(){
+  const player = { x:W/2, y:H*0.42, r:16 };
+  let stars = [], meteors = [];
+  let spawnT = 0, metT = 2;
+  let survivalTime = 0, done = false;
+  setupActionButtons([
+    { label:'ИМПУЛЬС', onClick:()=>{
+      const mv = getMoveVector();
+      if(mv){ player.x += mv.x*70; player.y += mv.y*70; }
+      player.x = Math.max(18, Math.min(W-18, player.x));
+      player.y = Math.max(70, Math.min(H-20, player.y));
+    }},
+  ]);
+  function spawnStar(){
+    stars.push({ x:25+Math.random()*(W-50), y:70+Math.random()*(H-140), r:6,
+      color:'#c06dff', pulse: Math.random()*6, life:1 });
+  }
+  function spawnMeteor(){
+    const edge = Math.floor(Math.random()*4);
+    let x,y;
+    if(edge===0){ x=Math.random()*W; y=-15; } else if(edge===1){ x=W+15; y=Math.random()*H; }
+    else if(edge===2){ x=Math.random()*W; y=H+15; } else { x=-15; y=Math.random()*H; }
+    meteors.push({ x,y,r:12, color:'#ff5a5a', pulse: Math.random()*6, speed: 30+Math.random()*18 });
+  }
+  return {
+    update(dt){
+      if(done) return;
+      survivalTime += dt;
+      const mv = getMoveVector();
+      if(mv){
+        player.x += mv.x * 120 * dt;
+        player.y += mv.y * 120 * dt;
+        player.x = Math.max(18, Math.min(W-18, player.x));
+        player.y = Math.max(70, Math.min(H-20, player.y));
+      }
+      S.energy = Math.max(0, S.energy - dt*2.5);
+      if(S.traits.photosynthesis) S.energy = Math.min(S.maxEnergy, S.energy + dt*0.8);
+      if(S.energy<=0 || S.stab<=0){ death(); return; }
+      spawnT -= dt;
+      if(spawnT<=0){ spawnT=0.7; if(stars.length<14) spawnStar(); }
+      metT -= dt;
+      if(metT<=0){ metT=2.0; if(meteors.length<5) spawnMeteor(); }
+      for(let i=stars.length-1;i>=0;i--){
+        const s = stars[i];
+        s.pulse += dt*4; s.life -= dt*0.06;
+        if(s.life<=0){ stars.splice(i,1); continue; }
+        if(Math.hypot(player.x-s.x,player.y-s.y) < player.r+s.r+3){
+          S.energy = Math.min(S.maxEnergy, S.energy+10);
+          stars.splice(i,1);
+        }
+      }
+      for(let i=meteors.length-1;i>=0;i--){
+        const m = meteors[i];
+        m.pulse += dt*4;
+        const dx = player.x-m.x, dy = player.y-m.y;
+        const d = Math.hypot(dx,dy)||1;
+        m.x += dx/d * m.speed*dt;
+        m.y += dy/d * m.speed*dt;
+        if(d < player.r+m.r){
+          S.stab = Math.max(0, S.stab-12*(1-S.traits.armor*0.5)); meteors.splice(i,1);
+        }
+      }
+      setStageProgress(survivalTime/35);
+      setStatusHint('Космический путь: звёздная энергия и метеориты');
+      if(survivalTime > 35 && !done){ done = true; finishFinal(); }
+    },
+    draw(){
+      const t = performance.now()/1000;
+      for(let i=0;i<30;i++){
+        const x = (i*73 + t*8) % W;
+        const y = (i*137 + t*3) % H;
+        ctx.globalAlpha = 0.3 + (i%3)*0.2;
+        circle(x,y,1,'#fff');
+      }
+      ctx.globalAlpha = 1;
+      stars.forEach(s=>{
+        ctx.globalAlpha = 0.7+Math.sin(s.pulse)*0.25;
+        glowCircle(s.x,s.y,s.r,s.color,12);
+        circle(s.x,s.y,s.r,s.color,10);
+      });
+      ctx.globalAlpha = 1;
+      meteors.forEach(m=>{
+        glowCircle(m.x,m.y,m.r,m.color,12);
+        circle(m.x,m.y,m.r,m.color,10);
+      });
+      glowCircle(player.x, player.y, player.r, '#c06dff', 20);
+      circle(player.x, player.y, player.r, '#c06dff', 16);
+      circle(player.x-5, player.y-3, 3, '#fff');
+      circle(player.x+5, player.y-3, 3, '#fff');
+      for(let i=0;i<5;i++){
+        const a = (i/5)*Math.PI*2 + t;
+        ctx.strokeStyle='rgba(192,109,255,.5)'; ctx.lineWidth=2;
+        ctx.beginPath();
+        ctx.moveTo(player.x, player.y);
+        ctx.lineTo(player.x + Math.cos(a)*22, player.y + Math.sin(a)*22);
+        ctx.stroke();
+      }
+    }
+  };
+  function finishFinal(){ S.running = false; S.stage = 6; clearActionButtons(); showFinalScreen(); }
+}
+
+function startFinalStage(){
+  S.energy = S.maxEnergy; S.stab = S.maxStab;
+  hideAllScreens();
+  if(S.branch==='earth') S.st = FinalEarth();
+  else if(S.branch==='human') S.st = FinalHuman();
+  else S.st = FinalSpace();
+  S.running = true; S.paused = false; S.elapsed = 0;
+  toast(S.branch==='earth'?'Земной путь!':S.branch==='human'?'Путь разума!':'Космический путь!', 1600);
+}
+
+// ============ ФИНАЛЬНЫЙ ЭКРАН ============
+let finalAnimId = null;
+function showFinalScreen(){
+  S.running = false;
+  const real = findRealCreature();
+  const isHuman = S.branch==='human';
+  const isSpace = S.branch==='space';
+  let realName, latin, epoch, who, abilities, weak;
+  if(real){
+    realName = real.name; latin = real.latin; epoch = real.epoch;
+    who = real.who; abilities = real.abilities; weak = real.weak;
+  } else if(isHuman){
+    realName = 'Человек разумный'; latin = 'Homo sapiens'; epoch = 'Современность';
+    who = 'Разумное социальное существо. Использует орудия, огонь и язык.';
+    abilities = ['Абстрактное мышление','Речь','Орудия','Огонь','Социум'];
+    weak = ['Физически слаб','Зависит от общества'];
+  } else if(isSpace){
+    realName = 'Инопланетное существо'; latin = generateLatinName(); epoch = 'Космическая эра';
+    who = 'Существо, адаптировавшееся к вакууму и радиации. Питается энергией звёзд.';
+    abilities = ['Дыхание в вакууме','Радиационная стойкость','Питание звёздным светом','Гравитационное чувство'];
+    weak = ['Не может жить в атмосфере','Медлителен в невесомости'];
+  } else {
+    realName = generateRussianName(); latin = generateLatinName(); epoch = 'Древний мир';
+    who = 'Универсальное существо, приспособившееся к своей среде.';
+    abilities = ['Приспособляемость','Выживание']; weak = ['Уязвим к хищникам'];
+  }
+  $('finalReal').textContent = realName;
+  $('finalLatin').textContent = latin;
+  $('finalEpoch').textContent = epoch;
+  $('finalWho').textContent = who;
+  $('finalAbilities').innerHTML = abilities.map(a=>`<li>${a}</li>`).join('');
+  $('finalWeak').innerHTML = weak.map(w=>`<li>${w}</li>`).join('');
+  const stats = [];
+  stats.push(`Тело: ${S.traits.body||'—'}`);
+  stats.push(`Скелет: ${S.traits.skeleton}`);
+  stats.push(`Среда: ${S.traits.env||'—'}`);
+  stats.push(`Размер: ${S.traits.size}`);
+  stats.push(`Социум: ${S.traits.social}`);
+  $('finalStats').innerHTML = stats.map(s=>`<div class="final-stat">${s}</div>`).join('');
+  showScreen('finalScreen');
+  setStatusHint('');
+  const fc = $('finalCanvas');
+  const wrap = $('finalCanvasWrap');
+  const dpr = Math.min(window.devicePixelRatio||1, 2);
+  function resizeFinal(){
+    const w = wrap.clientWidth, h = wrap.clientHeight;
+    fc.width = w*dpr; fc.height = h*dpr;
+    fc.style.width = w+'px'; fc.style.height = h+'px';
+  }
+  resizeFinal();
+  const fctx = fc.getContext('2d');
+  fctx.setTransform(dpr,0,0,dpr,0,0);
+  if(finalAnimId) cancelAnimationFrame(finalAnimId);
+  function animateFinal(){
+    if(!$('finalScreen').classList.contains('active')) return;
+    const w = wrap.clientWidth, h = wrap.clientHeight;
+    fctx.clearRect(0,0,w,h);
+    const g = fctx.createRadialGradient(w/2,h/2,10,w/2,h/2,w*0.7);
+    if(isSpace){ g.addColorStop(0,'rgba(192,109,255,.15)'); g.addColorStop(1,'transparent'); }
+    else if(isHuman){ g.addColorStop(0,'rgba(255,211,77,.12)'); g.addColorStop(1,'transparent'); }
+    else { g.addColorStop(0,'rgba(90,255,154,.1)'); g.addColorStop(1,'transparent'); }
+    fctx.fillStyle = g; fctx.fillRect(0,0,w,h);
+    const time = performance.now()/1000;
+    const scale = Math.min(w,h)/90;
+    if(isHuman){
+      const cx = w/2, cy = h/2;
+      const bob = Math.sin(time*2)*3;
+      drawCircleC(fctx, cx, cy-20+bob, 14, '#ffd34d', 15);
+      fctx.strokeStyle = '#ffd34d'; fctx.lineWidth = 7;
+      fctx.beginPath(); fctx.moveTo(cx, cy-4+bob); fctx.lineTo(cx, cy+24+bob); fctx.stroke();
+      fctx.beginPath(); fctx.moveTo(cx-16, cy+8+bob); fctx.lineTo(cx+16, cy+8+bob); fctx.stroke();
+      fctx.beginPath(); fctx.moveTo(cx, cy+24+bob); fctx.lineTo(cx-12, cy+44+bob); fctx.stroke();
+      fctx.beginPath(); fctx.moveTo(cx, cy+24+bob); fctx.lineTo(cx+12, cy+44+bob); fctx.stroke();
+      drawCircleC(fctx, cx-4, cy-22+bob, 2.5, '#04121f');
+      drawCircleC(fctx, cx+4, cy-22+bob, 2.5, '#04121f');
+    } else {
+      drawCreatureTo(fctx, w/2, h/2, scale, S.traits, time);
+    }
+    for(let i=0;i<12;i++){
+      const a = (i/12)*Math.PI*2 + time*0.3;
+      const r = Math.min(w,h)*0.35 + Math.sin(time*1.5+i)*8;
+      const px = w/2 + Math.cos(a)*r;
+      const py = h/2 + Math.sin(a)*r;
+      fctx.globalAlpha = 0.3 + Math.sin(time*2+i)*0.2;
+      drawCircleC(fctx, px, py, 2, isSpace?'#c06dff':isHuman?'#ffd34d':'#5aff9a');
+    }
+    fctx.globalAlpha = 1;
+    finalAnimId = requestAnimationFrame(animateFinal);
+  }
+  animateFinal();
+}
+$('btnFinalRestart').onclick = ()=>{ if(finalAnimId) cancelAnimationFrame(finalAnimId); resetGame(); showScreen('startScreen'); };
+
+// ============ КНОПКИ ============
+$('btnStart').onclick = ()=>{ resetGame(); startStage1Intro(); };
+$('btnHelp').onclick = ()=>showScreen('helpScreen');
+$('btnHelpBack').onclick = ()=>showScreen('startScreen');
+$('btnRetry').onclick = ()=>{ resetGame(); startStage1Intro(); };
+$('btnMenu').onclick = ()=>{ resetGame(); showScreen('startScreen'); };
+$('btnBranch').onclick = ()=> showBranchScreen();
+$('btnResume').onclick = ()=>{ S.paused = false; hideAllScreens(); };
+$('btnQuit').onclick = ()=>{ resetGame(); showScreen('startScreen'); };
+$('pauseBtn').onclick = ()=>{ if(!S.running) return; S.paused = true; showScreen('pauseScreen'); };
+
+resize();
+setupJoystick();
+showScreen('startScreen');
+requestAnimationFrame(loop);
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden && S.running){ S.paused = true; showScreen('pauseScreen'); }
+});
+})();
+</script>
+</body>
+</html>
